@@ -15,6 +15,9 @@ List<String> _commands(String script) {
 
 void main() {
   group('build scripts keep the channels apart', () {
+    // `scripts/build_all.sh` ships with the app. `build_apps.sh` and
+    // `build_signed_app.sh` belong to the private workspace and are not
+    // published, so a standalone clone skips them instead of failing.
     const scripts = <String, String>{
       'scripts/build_all.sh': 'scripts/build_all.sh',
       'scripts/build_apps.sh': '../scripts/build_apps.sh',
@@ -22,46 +25,60 @@ void main() {
     };
 
     for (final entry in scripts.entries) {
-      test('${entry.key} pairs every flavor with its define', () {
-        final file = File(entry.value);
-        expect(file.existsSync(), isTrue, reason: entry.value);
-        final lines = _commands(file.readAsStringSync());
-        final play =
-            lines.where((line) => line.contains('--flavor play')).toList();
-        final site =
-            lines.where((line) => line.contains('--flavor site')).toList();
+      final file = File(entry.value);
+      test(
+        '${entry.key} pairs every flavor with its define',
+        () {
+          expect(file.existsSync(), isTrue, reason: entry.value);
+          final lines = _commands(file.readAsStringSync());
+          final play =
+              lines.where((line) => line.contains('--flavor play')).toList();
+          final site =
+              lines.where((line) => line.contains('--flavor site')).toList();
 
-        for (final line in play) {
-          expect(
-            line,
-            contains('SOTY_CHANNEL=play'),
-            reason: 'play without the channel define: $line',
-          );
-        }
-        for (final line in site) {
-          expect(
-            line,
-            isNot(contains('SOTY_CHANNEL=play')),
-            reason: 'site flavour with the play define: $line',
-          );
-        }
-      });
+          for (final line in play) {
+            expect(
+              line,
+              contains('SOTY_CHANNEL=play'),
+              reason: 'play without the channel define: $line',
+            );
+          }
+          for (final line in site) {
+            expect(
+              line,
+              isNot(contains('SOTY_CHANNEL=play')),
+              reason: 'site flavour with the play define: $line',
+            );
+          }
+        },
+        skip: file.existsSync()
+            ? null
+            : '${entry.value} is workspace-only and not published',
+      );
     }
 
-    test('the release path really builds both flavors', () {
-      final lines = [
-        for (final path in scripts.values)
-          ..._commands(File(path).readAsStringSync()),
-      ];
-      expect(
-        lines.where((line) => line.contains('--flavor play')),
-        isNotEmpty,
-      );
-      expect(
-        lines.where((line) => line.contains('--flavor site')),
-        isNotEmpty,
-      );
-    });
+    final missing =
+        scripts.values.where((path) => !File(path).existsSync()).toList();
+    test(
+      'the release path really builds both flavors',
+      () {
+        final lines = [
+          for (final path in scripts.values)
+            ..._commands(File(path).readAsStringSync()),
+        ];
+        expect(
+          lines.where((line) => line.contains('--flavor play')),
+          isNotEmpty,
+        );
+        expect(
+          lines.where((line) => line.contains('--flavor site')),
+          isNotEmpty,
+        );
+      },
+      skip: missing.isEmpty
+          ? null
+          : 'workspace scripts are not published: ${missing.join(', ')}',
+    );
   });
 
   group('play manifest', () {
