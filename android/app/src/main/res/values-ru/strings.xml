@@ -1,0 +1,5 @@
+<resources>
+    <string name="soty_bg_channel">Фоновая работа</string>
+    <string name="soty_bg_channel_desc">Держит меш и связь с релеями активными, пока Soty в фоне.</string>
+    <string name="soty_bg_notification">Soty в фоне: меш и релеи активны</string>
+</resources>

@@ -1,0 +1,23 @@
+Soty — serverless end-to-end encrypted messenger Copyright (C) 2026 Soty contributors
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The full licence text is in the LICENSE file next to this NOTICE.
+
+Third-party components
+----------------------
+
+* third_party/flutter_mesh_network — offline mesh transport plugin. MIT License, Copyright (c) 2026 GEA Mesh Contributors. The full licence text is third_party/flutter_mesh_network/LICENSE.
+
+All other dependencies are declared in pubspec.yaml / pubspec.lock and keep their own licences.
+
+Trademark
+---------
+
+The licence above covers copyright in the source code. It does not grant any right to use the names "Soty", "Соты", the honeycomb mark or the project logo in a way that suggests an official or endorsed build. Unofficial forks must use a different name and icon, and must not present themselves as the official Soty app or the official Soty relay.
+
+Only builds published in https://github.com/slavabars/soty/releases are official.

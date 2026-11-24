@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Flutter Gradle plugin forces isMinifyEnabled/isShrinkResources on the
+     release build type (FlutterPlugin.kt:228-233). The resource shrinker only
+     sees references from XML and the manifest, so the notification chime, whose
+     only reference is the string 'soty_chime' in local_notifications.dart, is
+     dropped from release APKs. RawResourceAndroidNotificationSound then fails
+     to resolve it and the whole notification is silently lost. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/soty_chime,@mipmap/ic_launcher,@mipmap/ic_launcher_round" />

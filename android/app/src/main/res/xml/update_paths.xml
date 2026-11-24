@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the update directory inside the app's private cache is shared with
+     the package installer; nothing else is reachable through this provider. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

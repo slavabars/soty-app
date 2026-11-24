@@ -1,0 +1,25 @@
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Google Play build: the app never installs APK files itself.
+         Self-updating through REQUEST_INSTALL_PACKAGES violates Play policy,
+         and the Play build takes updates from the store only. -->
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+
+    <application>
+        <!-- The update FileProvider only serves a downloaded APK; without the
+             updater it has nothing to expose. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            tools:node="remove" />
+
+        <!-- Channel marker: scripts/verify_channels.sh reads it back from the
+             shipped artifact to prove the flavor and the Dart define agree. -->
+        <meta-data
+            android:name="ru.dcns.soty.channel"
+            android:value="soty-channel-play" />
+    </application>
+</manifest>

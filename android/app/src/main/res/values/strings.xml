@@ -1,0 +1,5 @@
+<resources>
+    <string name="soty_bg_channel">Background work</string>
+    <string name="soty_bg_channel_desc">Keeps the mesh and relay connections alive while Soty is in the background.</string>
+    <string name="soty_bg_notification">Soty is on: mesh and relays stay active</string>
+</resources>

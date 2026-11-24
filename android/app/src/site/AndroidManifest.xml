@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Channel marker: scripts/verify_channels.sh reads it back from the
+             shipped artifact to prove the flavor and the Dart define agree. -->
+        <meta-data
+            android:name="ru.dcns.soty.channel"
+            android:value="soty-channel-site" />
+    </application>
+</manifest>
