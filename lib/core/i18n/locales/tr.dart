@@ -424,4 +424,22 @@ const Map<String, String> _tr = {
       'Bu kişiyi engellediniz. Güvenlik kodu ekranından engeli kaldırın.',
   'Privacy policy': 'Gizlilik politikası',
   'Terms of use': 'Kullanım koşulları',
+  'Keys cannot be read': 'Anahtarlar okunamıyor',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Bu genellikle uygulama verileri sistem yedeğinden geri '
+      'yüklendiğinde olur: yedekte şifreli anahtarlar vardır, '
+      'ancak onları çözen cihaz anahtarı eski telefonda '
+      'kalmıştır. O olmadan mesajlar çözülemez.',
+  'Start over': 'Baştan başla',
+  'Try again': 'Yeniden dene',
+  'Delete local data': 'Yerel verileri sil',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Baştan başla» bu cihazdaki yerel veritabanını ve '
+      'medyayı siler. Soty yedek dosyanız varsa uygulama '
+      'açıldıktan sonra Ayarlar’dan geri yükleyin.',
 };

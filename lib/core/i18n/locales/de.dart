@@ -452,4 +452,25 @@ const Map<String, String> _de = {
       'Sicherheitscode-Bildschirm auf.',
   'Privacy policy': 'Datenschutzerklärung',
   'Terms of use': 'Nutzungsbedingungen',
+  'Keys cannot be read': 'Schlüssel lassen sich nicht lesen',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Das passiert meistens, wenn App-Daten aus einer '
+      'Systemsicherung wiederhergestellt wurden: Die Sicherung '
+      'enthält die verschlüsselten Schlüssel, aber der '
+      'Geräteschlüssel zum Entschlüsseln blieb auf dem alten '
+      'Telefon. Ohne ihn lassen sich Nachrichten nicht '
+      'entschlüsseln.',
+  'Start over': 'Neu beginnen',
+  'Try again': 'Erneut versuchen',
+  'Delete local data': 'Lokale Daten löschen',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '„Neu beginnen“ löscht die lokale Datenbank und Medien '
+      'auf diesem Gerät. Wenn du eine Soty-Sicherungsdatei '
+      'hast, stelle sie nach dem Start in den Einstellungen '
+      'wieder her.',
 };

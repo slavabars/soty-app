@@ -414,4 +414,22 @@ const Map<String, String> _th = {
       'คุณบล็อกผู้ติดต่อนี้แล้ว ยกเลิกการบล็อกได้ที่หน้าจอรหัสความปลอดภัย',
   'Privacy policy': 'นโยบายความเป็นส่วนตัว',
   'Terms of use': 'ข้อกำหนดการใช้งาน',
+  'Keys cannot be read': 'อ่านกุญแจไม่ได้',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'มักเกิดขึ้นเมื่อข้อมูลแอปถูกกู้คืนจากข้อมูลสำรองของระบบ: '
+      'สำรองมีกุญแจที่เข้ารหัสไว้ '
+      'แต่กุญแจของอุปกรณ์ที่ใช้ถอดรหัสยังอยู่บนโทรศัพท์เครื่องเ'
+      'ก่า หากไม่มีกุญแจนั้นจะถอดรหัสข้อความไม่ได้',
+  'Start over': 'เริ่มใหม่',
+  'Try again': 'ลองอีกครั้ง',
+  'Delete local data': 'ลบข้อมูลในเครื่อง',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '"เริ่มใหม่" จะลบฐานข้อมูลและไฟล์สื่อในเครื่องนี้ '
+      'หากคุณมีไฟล์สำรอง Soty '
+      'ให้กู้คืนในการตั้งค่าหลังแอปเริ่มทำงาน',
 };

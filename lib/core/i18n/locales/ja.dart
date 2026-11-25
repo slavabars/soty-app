@@ -416,4 +416,19 @@ const Map<String, String> _ja = {
       'この連絡先をブロックしました。安全コード画面で解除してください。',
   'Privacy policy': 'プライバシーポリシー',
   'Terms of use': '利用規約',
+  'Keys cannot be read': '鍵を読み取れません',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'これは通常、アプリのデータがシステムのバックアップから復元されたときに起こります。バックアップには暗号化された鍵'
+      'が入っていますが、それを復号する端末の鍵は古い端末に残っています。その鍵がないとメッセージは復号できません。',
+  'Start over': '最初からやり直す',
+  'Try again': '再試行',
+  'Delete local data': 'ローカルデータを削除',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '「最初からやり直す」と、この端末のローカルデータベースとメディアが削除されます。Soty '
+      'のバックアップファイルがある場合は、アプリ起動後に設定から復元してください。',
 };

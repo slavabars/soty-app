@@ -431,4 +431,24 @@ const Map<String, String> _it = {
       'del codice di sicurezza.',
   'Privacy policy': 'Informativa sulla privacy',
   'Terms of use': 'Termini di utilizzo',
+  'Keys cannot be read': 'Impossibile leggere le chiavi',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Succede di solito quando i dati dell’app vengono '
+      'ripristinati da un backup di sistema: il backup contiene '
+      'le chiavi cifrate, ma la chiave del dispositivo che le '
+      'decifra è rimasta sul vecchio telefono. Senza di essa i '
+      'messaggi non si possono decifrare.',
+  'Start over': 'Ricomincia',
+  'Try again': 'Riprova',
+  'Delete local data': 'Elimina i dati locali',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Ricomincia» elimina il database locale e i file '
+      'multimediali su questo dispositivo. Se hai un file di '
+      'backup di Soty, ripristinalo nelle Impostazioni dopo '
+      'l’avvio.',
 };

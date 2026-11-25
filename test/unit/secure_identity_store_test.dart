@@ -105,4 +105,47 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('a keystore decryption failure is an identity loss, not a crash',
+      () async {
+    answer((call) async {
+      if (call.method == 'available') return true;
+      throw PlatformException(
+        code: 'keystore',
+        message: 'AEADBadTagException',
+      );
+    });
+
+    await expectLater(
+      PlatformSecureIdentityStore(supported: true).read(),
+      throwsA(isA<IdentityUnavailableException>()),
+    );
+  });
+
+  test('a corrupt store is also reported as an identity loss', () async {
+    answer((call) async {
+      if (call.method == 'available') return true;
+      throw PlatformException(
+        code: 'keystore',
+        message: 'IllegalStateException',
+      );
+    });
+
+    await expectLater(
+      PlatformSecureIdentityStore(supported: true).read(),
+      throwsA(isA<IdentityUnavailableException>()),
+    );
+  });
+
+  test('other platform failures still surface as platform errors', () async {
+    answer((call) async {
+      if (call.method == 'available') return true;
+      throw PlatformException(code: 'bad_seed', message: 'nope');
+    });
+
+    await expectLater(
+      PlatformSecureIdentityStore(supported: true).read(),
+      throwsA(isA<PlatformException>()),
+    );
+  });
 }

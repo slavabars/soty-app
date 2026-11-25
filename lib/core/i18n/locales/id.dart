@@ -429,4 +429,22 @@ const Map<String, String> _id = {
       'Anda memblokir kontak ini. Buka blokirnya di layar kode keamanan.',
   'Privacy policy': 'Kebijakan privasi',
   'Terms of use': 'Ketentuan penggunaan',
+  'Keys cannot be read': 'Kunci tidak dapat dibaca',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Ini biasanya terjadi saat data aplikasi dipulihkan dari '
+      'cadangan sistem: cadangan berisi kunci terenkripsi, '
+      'tetapi kunci perangkat yang membukanya tertinggal di '
+      'ponsel lama. Tanpanya pesan tidak dapat didekripsi.',
+  'Start over': 'Mulai dari awal',
+  'Try again': 'Coba lagi',
+  'Delete local data': 'Hapus data lokal',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Mulai dari awal» menghapus basis data lokal dan media '
+      'di perangkat ini. Jika Anda punya berkas cadangan Soty, '
+      'pulihkan di Pengaturan setelah aplikasi berjalan.',
 };

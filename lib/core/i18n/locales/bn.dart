@@ -423,4 +423,22 @@ const Map<String, String> _bn = {
       'আপনি এই যোগাযোগ ব্লক করেছেন। নিরাপত্তা কোড স্ক্রিনে আনব্লক করুন।',
   'Privacy policy': 'গোপনীয়তা নীতি',
   'Terms of use': 'ব্যবহারের শর্তাবলি',
+  'Keys cannot be read': 'কী পড়া যাচ্ছে না',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'সাধারণত তখন হয় যখন অ্যাপের ডেটা সিস্টেম ব্যাকআপ থেকে '
+      'পুনরুদ্ধার হয়: ব্যাকআপে এনক্রিপ্ট করা কী থাকে, কিন্তু '
+      'সেগুলো খোলার ডিভাইস-কী পুরোনো ফোনেই থেকে যায়। এটি ছাড়া '
+      'বার্তা ডিক্রিপ্ট করা যায় না।',
+  'Start over': 'নতুন করে শুরু করুন',
+  'Try again': 'আবার চেষ্টা করুন',
+  'Delete local data': 'স্থানীয় ডেটা মুছুন',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«নতুন করে শুরু করুন» এই ডিভাইসের স্থানীয় ডেটাবেস ও '
+      'মিডিয়া মুছে ফেলবে। Soty ব্যাকআপ ফাইল থাকলে অ্যাপ চালু '
+      'হওয়ার পর সেটিংসে পুনরুদ্ধার করুন।',
 };

@@ -428,4 +428,22 @@ const Map<String, String> _hi = {
       'आपने इस संपर्क को ब्लॉक किया है। सुरक्षा कोड स्क्रीन में अनब्लॉक करें।',
   'Privacy policy': 'गोपनीयता नीति',
   'Terms of use': 'उपयोग की शर्तें',
+  'Keys cannot be read': 'कुंजियाँ पढ़ी नहीं जा सकतीं',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'ऐसा आमतौर पर तब होता है जब ऐप डेटा सिस्टम बैकअप से बहाल '
+      'होता है: बैकअप में एन्क्रिप्टेड कुंजियाँ होती हैं, पर '
+      'उन्हें खोलने वाली डिवाइस कुंजी पुराने फ़ोन पर ही रह जाती '
+      'है। उसके बिना संदेश डिक्रिप्ट नहीं हो सकते।',
+  'Start over': 'फिर से शुरू करें',
+  'Try again': 'पुनः प्रयास करें',
+  'Delete local data': 'स्थानीय डेटा हटाएँ',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '“फिर से शुरू करें” इस डिवाइस का स्थानीय डेटाबेस और '
+      'मीडिया हटा देगा। यदि आपके पास Soty बैकअप फ़ाइल है, तो ऐप '
+      'शुरू होने के बाद उसे सेटिंग्स में बहाल करें।',
 };

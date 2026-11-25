@@ -4,6 +4,20 @@ import 'package:flutter/services.dart';
 
 import '../crypto/hex.dart' show isHexOfLength;
 
+/// The identity cannot be reconstructed: the stored ciphertext is unreadable
+/// or the seed is gone. Usually this means Android restored the app's data from
+/// a system backup while the Keystore key that decrypts the seeds stayed on the
+/// old device. Nothing in the app can repair this; the user has to restore a
+/// Soty backup or start over.
+class IdentityUnavailableException implements Exception {
+  final String detail;
+
+  const IdentityUnavailableException([this.detail = '']);
+
+  @override
+  String toString() => 'IdentityUnavailableException($detail)';
+}
+
 /// The two 32-byte private seeds that make up a DTM identity.
 class SecureSeeds {
   final String edSeedHex;
@@ -85,7 +99,19 @@ class PlatformSecureIdentityStore implements SecureIdentityStore {
   @override
   Future<SecureSeeds?> read() async {
     if (!await isAvailable()) return null;
-    final raw = await _channel.invokeMethod<Object?>('read');
+    final Object? raw;
+    try {
+      raw = await _channel.invokeMethod<Object?>('read');
+    } on PlatformException catch (error) {
+      // The Kotlin side reports every keystore failure as code `keystore`.
+      // A failed AEAD tag, a missing alias and a corrupt blob all mean the
+      // same thing to the Dart layer: the identity cannot be read, and the
+      // app must offer recovery instead of crashing on a raw error.
+      if (error.code == 'keystore') {
+        throw IdentityUnavailableException('${error.message}');
+      }
+      rethrow;
+    }
     if (raw == null) return null;
     return SecureSeeds.fromPlatform(raw);
   }

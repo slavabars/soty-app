@@ -29,10 +29,12 @@ import 'core/soty_route.dart';
 import 'core/storage/conversation_dao.dart';
 import 'core/storage/database.dart';
 import 'core/storage/identity_dao.dart';
+import 'core/storage/identity_reset.dart';
 import 'core/storage/media_dao.dart';
 import 'core/storage/message_dao.dart';
 import 'core/storage/peer_dao.dart';
 import 'core/storage/pruned_roots_dao.dart';
+import 'core/storage/secure_identity_store.dart';
 import 'core/storage/settings_dao.dart';
 import 'core/sync/envelope_processor.dart';
 import 'core/transport/host/host_transport.dart';
@@ -42,6 +44,7 @@ import 'core/transport/transport.dart';
 import 'core/update/update_client.dart';
 import 'core/update/update_controller.dart';
 import 'features/identity/identity_controller.dart';
+import 'features/identity/identity_recovery_screen.dart';
 import 'features/identity/identity_screen.dart';
 import 'features/identity/onboarding_screen.dart';
 import 'features/messenger/chat_screen.dart';
@@ -147,6 +150,11 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
   MeshTransport? _meshTransport;
   UpdateController? _update;
   Object? _bootstrapError;
+
+  /// Set when the identity seeds cannot be decrypted (usually a system-backup
+  /// restore without the Keystore key). The app then shows the recovery screen
+  /// instead of a raw error no user can act on.
+  bool _identityUnavailable = false;
   Timer? _pruneTimer;
   Timer? _lanRefreshTimer;
   Timer? _presenceTimer;
@@ -358,7 +366,17 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
       final dir = await _dataDir();
       final db = await AppDatabase.open(dir.path);
       final identity = IdentityController(IdentityDao(db));
-      await identity.load();
+      try {
+        await identity.load();
+      } on IdentityUnavailableException catch (error) {
+        // A restore without the Keystore key: the history is unreadable and
+        // nothing in the app can repair it. Offer restore-or-start-over.
+        debugPrint('Soty identity unavailable: $error');
+        await db.close();
+        if (!mounted) return;
+        setState(() => _identityUnavailable = true);
+        return;
+      }
       if (identity.keyPair == null) {
         if (!mounted) return;
         setState(() {
@@ -375,6 +393,31 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
         setState(() => _bootstrapError = e);
       }
     }
+  }
+
+  void _retryBootstrap() {
+    setState(() => _identityUnavailable = false);
+    unawaited(_bootstrap());
+  }
+
+  /// Erases the unreadable identity together with the local database and
+  /// media, then bootstraps into onboarding, where a Soty backup file can be
+  /// restored.
+  Future<void> _startOver() async {
+    final db = _db;
+    _db = null;
+    await db?.close();
+    final dir = await _dataDir();
+    await eraseLocalIdentityData(
+      support: dir,
+      secure: PlatformSecureIdentityStore(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _identityUnavailable = false;
+      _needsOnboarding = false;
+    });
+    await _bootstrap();
   }
 
   /// Rebuilds every controller around the identity a restore just wrote.
@@ -417,6 +460,7 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
     setState(() {
       _needsOnboarding = false;
       _bootstrapError = null;
+      _identityUnavailable = false;
     });
     await _bootstrap();
   }
@@ -1125,6 +1169,12 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
 
   Widget _buildHome() {
     final prefs = _prefs;
+    if (_identityUnavailable) {
+      return IdentityRecoveryScreen(
+        onRetry: _retryBootstrap,
+        onStartOver: _startOver,
+      );
+    }
     if (_bootstrapError != null) {
       return Scaffold(
         body: Center(

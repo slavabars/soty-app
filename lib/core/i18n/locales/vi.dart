@@ -421,4 +421,22 @@ const Map<String, String> _vi = {
       'Bạn đã chặn liên hệ này. Bỏ chặn trong màn hình mã an toàn.',
   'Privacy policy': 'Chính sách quyền riêng tư',
   'Terms of use': 'Điều khoản sử dụng',
+  'Keys cannot be read': 'Không đọc được khóa',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Điều này thường xảy ra khi dữ liệu ứng dụng được khôi '
+      'phục từ bản sao lưu hệ thống: bản sao lưu chứa khóa đã '
+      'mã hóa, nhưng khóa thiết bị để giải mã vẫn ở điện thoại '
+      'cũ. Không có khóa đó thì không thể giải mã tin nhắn.',
+  'Start over': 'Bắt đầu lại',
+  'Try again': 'Thử lại',
+  'Delete local data': 'Xóa dữ liệu cục bộ',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Bắt đầu lại» sẽ xóa cơ sở dữ liệu cục bộ và tệp media '
+      'trên thiết bị này. Nếu bạn có tệp sao lưu Soty, hãy khôi '
+      'phục trong Cài đặt sau khi ứng dụng khởi động.',
 };

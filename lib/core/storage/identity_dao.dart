@@ -85,7 +85,7 @@ class IdentityDao extends DatabaseAccessor<AppDatabase> {
     final ed = row.edSeedHex;
     final x = row.xSeedHex;
     if (ed.isEmpty && x.isEmpty) {
-      throw StateError('identity row has no seeds and no keystore copy');
+      throw const IdentityUnavailableException('no seeds and no keystore copy');
     }
     if (!isHexOfLength(ed, 32) || !isHexOfLength(x, 32)) {
       throw const FormatException('identity row: malformed seed');

@@ -155,7 +155,10 @@ void main() {
       ),
     );
 
-    await expectLater(dao.load(), throwsStateError);
+    await expectLater(
+      dao.load(),
+      throwsA(isA<IdentityUnavailableException>()),
+    );
   });
 
   test('a malformed seed in the row is rejected', () async {

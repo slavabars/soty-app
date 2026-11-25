@@ -438,4 +438,24 @@ const Map<String, String> _pt = {
       'Bloqueou este contacto. Desbloqueie-o no ecrã do código de segurança.',
   'Privacy policy': 'Política de privacidade',
   'Terms of use': 'Termos de utilização',
+  'Keys cannot be read': 'Não é possível ler as chaves',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Isto acontece normalmente quando os dados da aplicação '
+      'são restaurados de uma cópia de segurança do sistema: a '
+      'cópia contém as chaves cifradas, mas a chave do '
+      'dispositivo que as decifra ficou no telemóvel antigo. '
+      'Sem ela, as mensagens não podem ser decifradas.',
+  'Start over': 'Começar de novo',
+  'Try again': 'Tentar novamente',
+  'Delete local data': 'Apagar dados locais',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Começar de novo» apaga a base de dados local e os '
+      'ficheiros multimédia deste dispositivo. Se tiver um '
+      'ficheiro de cópia de segurança do Soty, restaure-o nas '
+      'Definições depois de a aplicação arrancar.',
 };

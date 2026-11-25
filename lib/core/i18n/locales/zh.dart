@@ -394,4 +394,18 @@ const Map<String, String> _zh = {
       '你已屏蔽该联系人。请在安全码屏幕解除屏蔽。',
   'Privacy policy': '隐私政策',
   'Terms of use': '使用条款',
+  'Keys cannot be read': '无法读取密钥',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      '通常发生在应用数据从系统备份恢复之后：备份里是加密的密钥，而解密它们的设备密钥留在了旧手机上。没有它就无法解密消'
+      '息。',
+  'Start over': '重新开始',
+  'Try again': '重试',
+  'Delete local data': '删除本地数据',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '“重新开始”会删除此设备上的本地数据库和媒体文件。如果你有 Soty 备份文件，请在应用启动后在设置中恢复它。',
 };

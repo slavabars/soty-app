@@ -475,4 +475,24 @@ const Map<String, String> _ru = {
       'Контакт заблокирован. Разблокируйте его на экране кода безопасности.',
   'Privacy policy': 'Политика конфиденциальности',
   'Terms of use': 'Условия использования',
+  'Keys cannot be read': 'Ключи не читаются',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'Обычно так бывает, когда данные приложения восстановили '
+      'из системной резервной копии: в копии лежат '
+      'зашифрованные ключи, а ключ устройства, который их '
+      'расшифровывает, остался на старом телефоне. Без него '
+      'сообщения не расшифровать.',
+  'Start over': 'Начать заново',
+  'Try again': 'Повторить',
+  'Delete local data': 'Удалить локальные данные',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«Начать заново» удалит локальную базу и медиафайлы на '
+      'этом устройстве. Если у вас есть файл резервной копии '
+      'Soty, восстановите его в Настройках после запуска '
+      'приложения.',
 };

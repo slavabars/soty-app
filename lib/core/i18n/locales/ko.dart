@@ -421,4 +421,19 @@ const Map<String, String> _ko = {
       '이 연락처를 차단했습니다. 보안 코드 화면에서 해제하세요.',
   'Privacy policy': '개인정보 처리방침',
   'Terms of use': '이용약관',
+  'Keys cannot be read': '키를 읽을 수 없습니다',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      '보통 앱 데이터가 시스템 백업에서 복원될 때 발생합니다. 백업에는 암호화된 키가 들어 있지만, 그것을 '
+      '복호화하는 기기 키는 이전 휴대전화에 남아 있습니다. 그 키 없이는 메시지를 복호화할 수 없습니다.',
+  'Start over': '처음부터 시작',
+  'Try again': '다시 시도',
+  'Delete local data': '로컬 데이터 삭제',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '"처음부터 시작"하면 이 기기의 로컬 데이터베이스와 미디어가 삭제됩니다. Soty 백업 파일이 있으면 '
+      '앱을 시작한 뒤 설정에서 복원하세요.',
 };

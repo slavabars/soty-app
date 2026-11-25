@@ -428,4 +428,22 @@ const Map<String, String> _ar = {
       'لقد حجبت هذه الجهة. أزل الحجب من شاشة رمز الأمان.',
   'Privacy policy': 'سياسة الخصوصية',
   'Terms of use': 'شروط الاستخدام',
+  'Keys cannot be read': 'تعذّرت قراءة المفاتيح',
+  'This usually happens when app data was restored from a '
+      'system backup: the backup holds the encrypted keys, but '
+      'the device key that decrypts them stayed on the old '
+      'phone. Messages cannot be decrypted without it.':
+      'يحدث هذا عادةً عندما تُستعاد بيانات التطبيق من نسخة '
+      'احتياطية للنظام: النسخة تحوي المفاتيح المشفّرة، لكن '
+      'مفتاح الجهاز الذي يفكّها بقي على الهاتف القديم. بدونه لا '
+      'يمكن فكّ تشفير الرسائل.',
+  'Start over': 'البدء من جديد',
+  'Try again': 'إعادة المحاولة',
+  'Delete local data': 'حذف البيانات المحلية',
+  'Start over deletes the local database and media on this '
+      'device. If you have a Soty backup file, restore it in '
+      'Settings after the app starts.':
+      '«البدء من جديد» يحذف قاعدة البيانات المحلية والوسائط على '
+      'هذا الجهاز. إن كانت لديك نسخة احتياطية من Soty فاستعدها '
+      'من الإعدادات بعد تشغيل التطبيق.',
 };
