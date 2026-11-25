@@ -9,7 +9,7 @@ library;
 /// `major.minor.patch+build`, e.g. `1.1.0+2`.
 const String kSotyVersion = String.fromEnvironment(
   'SOTY_APP_VERSION',
-  defaultValue: '1.7.18+36',
+  defaultValue: '1.7.19+37',
 );
 
 /// Public binaries+docs mirror. The source of truth is a private workspace
