@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// The regular suite skips it. Run it after a wire change:
 ///
-///   relay-owrt/dist/x86_64/dtm_relay --listen 127.0.0.1 --port 13102 \
+///   host/relay-owrt/dist/x86_64/dtm_relay --listen 127.0.0.1 --port 13102 \
 ///     --identity /tmp/dtm-relay-identity
 ///   SOTY_RELAY_URL=ws://127.0.0.1:13102/ws \
 ///   SOTY_RELAY_PUB=banner-ed25519 \
