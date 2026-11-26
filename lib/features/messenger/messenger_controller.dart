@@ -22,6 +22,8 @@ import '../../core/security_limits.dart'
         maxGroupTitleLength,
         autoDownloadBytes,
         maxActiveTransfers,
+        maxStagingBytes,
+        maxUnsolicitedConversations,
         maxConcurrentServesPerPeer,
         maxMediaBlobBytes,
         maxMediaCacheBytes,
@@ -1195,13 +1197,30 @@ class MessengerController {
   /// Keeps the staging area bounded by dropping the oldest incomplete
   /// transfers. A flood of manifests can therefore never grow storage without
   /// limit.
+  Future<void>? _bounding;
+
   Future<void> _boundTransfers() async {
+    while (_bounding != null) {
+      await _bounding;
+    }
+    final future = _boundTransfersOnce();
+    _bounding = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_bounding, future)) _bounding = null;
+    }
+  }
+
+  Future<void> _boundTransfersOnce() async {
     var count = await transferDao.count();
-    while (count > maxActiveTransfers) {
+    var bytes = await transferDao.totalBytes();
+    while (count > maxActiveTransfers || bytes > maxStagingBytes) {
       final oldest = await transferDao.oldest();
       if (oldest == null) return;
       await transferDao.remove(oldest.transferId);
-      count--;
+      count = await transferDao.count();
+      bytes = await transferDao.totalBytes();
     }
   }
 
@@ -1227,6 +1246,12 @@ class MessengerController {
     }
     final known = peerByEdPubKey(envelope.senderPubKey);
     final chatId = known?.pubKey ?? envelope.senderPubKey;
+    if (known == null && !_conversations.containsKey(chatId)) {
+      final unsolicited = _conversations.values
+          .where((c) => !c.isGroup && !_peers.containsKey(c.id))
+          .length;
+      if (unsolicited >= maxUnsolicitedConversations) return;
+    }
     // Never address a receipt to the self-asserted `senderX` of an unknown
     // peer: that would let anyone make this device emit envelopes to an
     // arbitrary third-party X key.

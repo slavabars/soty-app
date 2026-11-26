@@ -36,7 +36,7 @@ class AppPrefs extends ChangeNotifier {
   bool _background = true;
   bool _sendOnEnter = true;
   bool _readReceipts = true;
-  RelayMode _relayMode = RelayMode.auto;
+  RelayMode _relayMode = RelayMode.manual;
   List<String> _emojiRecents = const [];
 
   Locale get locale => _locale;
@@ -107,7 +107,7 @@ class AppPrefs extends ChangeNotifier {
     final relayModeRaw = await settings.get(relayModeSettingsKey);
     _relayMode = RelayMode.values.firstWhere(
       (mode) => mode.name == relayModeRaw,
-      orElse: () => RelayMode.auto,
+      orElse: () => RelayMode.manual,
     );
     _emojiRecents = _parseRecents(await settings.get(emojiRecentsKey));
     notifyListeners();

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart';
 
@@ -45,8 +43,11 @@ class MessageDao extends DatabaseAccessor<AppDatabase> {
         ),
         mode: InsertMode.insertOrIgnore,
       );
-      inserted = true;
-      await _recordChain(envelope);
+      // INSERT OR IGNORE reports success even when a concurrent writer won
+      // the id. changes() is the only reliable signal on the same connection.
+      final changed = await customSelect('SELECT changes() AS c').getSingle();
+      inserted = changed.read<int>('c') > 0;
+      if (inserted) await _recordChain(envelope);
     });
     return inserted;
   }
@@ -605,17 +606,17 @@ class MessageDao extends DatabaseAccessor<AppDatabase> {
       // One linear pass: a `List.contains` per row made this quadratic on a
       // relayed cache that can hold tens of thousands of envelopes.
       var bytes = 0;
-      final kept = <Message>[];
+      final kept = <_PruneRow>[];
       for (final row in relayed) {
         if (byAge.contains(row.id)) continue;
-        bytes += _ciphertextBytes(row.ciphertext);
+        bytes += row.bytes;
         kept.add(row);
       }
       final overBytes = <String>[];
       var overCutoff = 0;
       for (final row in kept) {
         if (bytes <= relayedMaxBytes) break;
-        bytes -= _ciphertextBytes(row.ciphertext);
+        bytes -= row.bytes;
         overBytes.add(row.id);
         if (row.timestamp > overCutoff) overCutoff = row.timestamp;
       }
@@ -628,27 +629,37 @@ class MessageDao extends DatabaseAccessor<AppDatabase> {
     return results;
   }
 
-  Future<List<Message>> _ordered({
+  /// Reads only the prune metadata, never the ciphertext itself. A relayed
+  /// cache can hold tens of thousands of rows; materialising every base64
+  /// payload here was the startup-OOM path from the audit.
+  Future<List<_PruneRow>> _ordered({
     int? cutoff,
     required Expression<bool> Function(Messages) predicate,
   }) async {
-    final query = select(db.messages)
+    final bytesExpr = db.messages.ciphertext.length;
+    final query = selectOnly(db.messages)
+      ..addColumns([db.messages.id, db.messages.timestamp, bytesExpr])
       ..orderBy([
-        (m) => OrderingTerm(expression: m.timestamp),
-        (m) => OrderingTerm(expression: m.id),
+        OrderingTerm(expression: db.messages.timestamp),
+        OrderingTerm(expression: db.messages.id),
       ])
-      ..where((m) {
-        final p = predicate(m);
-        return cutoff == null
-            ? p
-            : m.timestamp.isSmallerThanValue(cutoff) & p;
-      });
-    return query.get();
-  }
-
-  static int _ciphertextBytes(String base64) {
-    final padded = base64.padRight((base64.length + 3) & ~3, '=');
-    return base64Decode(padded).length;
+      ..where(
+        cutoff == null
+            ? predicate(db.messages)
+            : db.messages.timestamp.isSmallerThanValue(cutoff) &
+                  predicate(db.messages),
+      );
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        _PruneRow(
+          id: row.read(db.messages.id)!,
+          timestamp: row.read(db.messages.timestamp)!,
+          // Base64 text is ~4/3 of the decoded bytes; erring upward keeps the
+          // byte cap conservative.
+          bytes: ((row.read(bytesExpr) ?? 0) * 3) ~/ 4,
+        ),
+    ];
   }
 
   /// Cutoff in UTC milliseconds, clamped to >= 0.
@@ -657,6 +668,17 @@ class MessageDao extends DatabaseAccessor<AppDatabase> {
     final cutoff = now - age.inMilliseconds;
     return cutoff < 0 ? 0 : cutoff;
   }
+}
+
+class _PruneRow {
+  final String id;
+  final int timestamp;
+  final int bytes;
+  const _PruneRow({
+    required this.id,
+    required this.timestamp,
+    required this.bytes,
+  });
 }
 
 /// Result of one pruning run.

@@ -20,6 +20,7 @@ import '../../../models/envelope.dart';
 import '../../../models/peer.dart';
 import '../../crypto/hex.dart' show hexToBytes;
 import '../../crypto/identity_claim.dart';
+import '../../host/rate_limiter.dart';
 import '../../security_limits.dart' as limits;
 import '../../util/capped_set.dart';
 import '../length_prefixed.dart';
@@ -81,6 +82,14 @@ List<String> dialTargets(
 /// Yamux-multiplexed) streams. Envelopes are opaque here — this layer never
 /// decrypts.
 class P2PTransport implements Transport, PeerImportable {
+  final RateLimiter _inboundLimiter = RateLimiter(
+    limitPerWindow: limits.p2pInboundPerWindow,
+    maxKeys: limits.maxActivePeersCeiling * 2,
+  );
+  final RateLimiter _inboundGlobal = RateLimiter(
+    limitPerWindow: limits.p2pInboundGlobalPerWindow,
+    maxKeys: 1,
+  );
   final String _ed25519SeedHex;
   final String _listenAddr;
   final List<String> Function() _selfAddrs;
@@ -320,6 +329,10 @@ class P2PTransport implements Transport, PeerImportable {
           continue;
         }
         if (_seenIds.add(envelope.id)) {
+          if (!_inboundGlobal.allow('p2p') ||
+              !_inboundLimiter.allow(envelope.senderPubKey)) {
+            continue;
+          }
           final to = envelope.recipientPubKey;
           final toShort = to.isNotEmpty ? to.substring(0, 8) : '';
           debugPrint('[p2p] inbound env=${envelope.id} from=$remotePeer '
@@ -495,7 +508,7 @@ class P2PTransport implements Transport, PeerImportable {
       final idKey = remoteId.toString();
       if (!_identified.contains(idKey)) {
         try {
-          if (await _exchangeIdentity(remoteId, peer.addrs)) {
+          if (await _exchangeIdentity(remoteId, peer.pubKey, peer.addrs)) {
             _identified.add(idKey);
           }
         } catch (_) {
@@ -543,7 +556,7 @@ class P2PTransport implements Transport, PeerImportable {
             AddrInfo(remoteId, [for (final a in targets) MultiAddr(a)]),
             context: Context(timeout: _presenceTimeout),
           );
-          if (await _exchangeIdentity(remoteId, peer.addrs)) {
+          if (await _exchangeIdentity(remoteId, peer.pubKey, peer.addrs)) {
             _identified.add(remoteId.toString());
           }
           final updated = peer.copyWith(
@@ -562,7 +575,11 @@ class P2PTransport implements Transport, PeerImportable {
   /// Opens an outbound identify exchange so both sides learn the Ed25519↔X25519
   /// binding even when the peer was added manually with only its X key.
   /// Returns `true` once the remote's signed claim verified and was remembered.
-  Future<bool> _exchangeIdentity(PeerId remoteId, List<String> addrs) async {
+  Future<bool> _exchangeIdentity(
+    PeerId remoteId,
+    String expectedX,
+    List<String> addrs,
+  ) async {
     final host = _host;
     final myClaim = _myClaim;
     if (host == null || myClaim == null) return false;
@@ -582,6 +599,9 @@ class P2PTransport implements Transport, PeerImportable {
       if (frame == null) return false;
       final claim = IdentityClaim.decode(utf8.decode(frame));
       if (await claim.check() != ClaimStatus.valid) return false;
+      // A hostile tracker that bound a victim's X key to its own peer id must
+      // not be able to receive that victim's ciphertext via this channel.
+      if (claim.xPubKey != expectedX) return false;
       _rememberClaimedPeer(remoteId, claim, addrs: addrs);
       return true;
     } finally {

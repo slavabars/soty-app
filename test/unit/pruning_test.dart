@@ -234,14 +234,16 @@ void main() {
 
       final batches = await prune(ownDays: null, relayedMaxBytes: 40);
 
-      expect(await storedCount(), 5);
+      // The DAO bounds the byte cap without materialising ciphertext; base64
+      // text is a conservative upper bound, so one extra old row is dropped.
+      expect(await storedCount(), 4);
       final remaining = await db
           .select(db.messages)
           .get()
           .then((rows) => rows.map((r) => r.id).toSet());
-      expect(remaining, {'r15', 'r16', 'r17', 'r18', 'r19'});
+      expect(remaining, {'r16', 'r17', 'r18', 'r19'});
       final bytePrune = batches.last;
-      expect(bytePrune.count, 15);
+      expect(bytePrune.count, 16);
       final entries = await roots.getPrunedRoots();
       expect(entries, hasLength(1));
       expect(

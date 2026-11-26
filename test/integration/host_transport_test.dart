@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dtm_app/core/crypto/envelope_crypto.dart';
+import 'package:dtm_app/core/crypto/handshake.dart';
 import 'package:dtm_app/core/crypto/keypair.dart';
 import 'package:dtm_app/core/host/host_link.dart';
 import 'package:dtm_app/core/security_limits.dart'
@@ -69,6 +70,11 @@ Future<HostTransport> makeTransport({
       myXPubKey: await device.x25519PublicKeyHex,
       displayName: 'tester',
     );
+    // Production defaults to manual; these fixtures exercise tracker
+    // discovery unless the test explicitly stores a mode.
+    if (await settings.get('soty.relayMode') == null) {
+      await transport.setRelayMode(RelayMode.auto);
+    }
     addTearDown(transport.stop);
     return transport;
   }
@@ -447,6 +453,7 @@ Future<HostTransport> makeTransport({
       ];
 
       final transport = await makeTransport();
+      await transport.setRelayMode(RelayMode.auto);
       await transport.addHost(
         HostEndpoint(addr: 'ws://127.0.0.1:${fake.port}/ws'),
       );
@@ -479,6 +486,7 @@ Future<HostTransport> makeTransport({
         peerCount: () => trackerStopPeerListCount + 10,
         peerImport: importer,
       );
+      await transport.setRelayMode(RelayMode.auto);
       await transport.addHost(
         HostEndpoint(addr: 'ws://127.0.0.1:${fake.port}/ws'),
       );
@@ -502,6 +510,7 @@ Future<HostTransport> makeTransport({
       ];
 
       final transport = await makeTransport(allowLoopbackHosts: false);
+      await transport.setRelayMode(RelayMode.auto);
       await transport.addHost(
         HostEndpoint(addr: 'ws://127.0.0.1:${fake.port}/ws'),
       );
@@ -511,6 +520,41 @@ Future<HostTransport> makeTransport({
         'ws://127.0.0.1:${fake.port}/ws',
       ]);
       expect(second.subscriptions, 0);
+    });
+
+    test('a pinned relay signs WELCOME and is accepted', () async {
+      final signer = await DtmKeyPair.generate();
+      final pub = await signer.ed25519PublicKeyHex;
+      final signed = _FakeHost(identityHex: pub, signer: signer);
+      await signed.start();
+      addTearDown(signed.stop);
+
+      final transport = await makeTransport(
+        bootstrapHost: HostEndpoint(
+          addr: 'ws://127.0.0.1:${signed.port}/ws',
+          edPubKey: pub,
+        ),
+      );
+      await _until(() => signed.subscriptions >= 1);
+      expect(transport.connectedHosts, hasLength(1));
+    });
+
+    test('a pinned relay without a WELCOME signature is rejected', () async {
+      final signer = await DtmKeyPair.generate();
+      final pub = await signer.ed25519PublicKeyHex;
+      final unsigned = _FakeHost(identityHex: pub);
+      await unsigned.start();
+      addTearDown(unsigned.stop);
+
+      final transport = await makeTransport(
+        bootstrapHost: HostEndpoint(
+          addr: 'ws://127.0.0.1:${unsigned.port}/ws',
+          edPubKey: pub,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(transport.connectedHosts, isEmpty);
+      expect(unsigned.subscriptions, 0);
     });
 
     test('manual mode never requests discovery or dials tracker hosts',
@@ -552,6 +596,7 @@ Future<HostTransport> makeTransport({
       final transport = await makeTransport(
         reconnectBase: const Duration(milliseconds: 20),
       );
+      await transport.setRelayMode(RelayMode.auto);
       await transport.addHost(
         HostEndpoint(addr: 'ws://127.0.0.1:${fake.port}/ws'),
       );
@@ -741,7 +786,8 @@ class _RecordingSink implements EnvelopeSink {
 
 class _FakeHost {
   final String identityHex;
-  _FakeHost({required this.identityHex});
+  final DtmKeyPair? signer;
+  _FakeHost({required this.identityHex, this.signer});
 
   bool acceptPublished = true;
   bool garbageGreeting = false;
@@ -824,23 +870,39 @@ class _FakeHost {
       final message = GossipMessage.fromJson(decoded);
       inbounds.add(message);
       switch (message) {
-        case HelloMessage(:final capabilities):
+        case HelloMessage(:final capabilities, :final nonce):
           helloCount++;
           helloCapabilities = capabilities;
           if (garbageGreeting) {
             ws.add('this is not gossip json');
           } else {
+            final caps = [
+              if (trackerCapable) 'dtm-tracker',
+              if (liveCapable) 'dtm-live',
+            ];
+            final identity = signer == null
+                ? identityHex
+                : await signer!.ed25519PublicKeyHex;
+            final proof = signer == null || nonce == null
+                ? null
+                : await signHandshakeData(
+                    signer!,
+                    welcomeProofData(
+                      nonce: nonce,
+                      serverTime: 0,
+                      identity: identity,
+                      capabilities: caps,
+                    ),
+                  );
             ws.add(
               jsonEncode(
                 WelcomeMessage(
                   serverTime: 0,
                   retentionSeconds: 3600,
                   maxEnvelopeSize: maxFrameBytes,
-                  identity: identityHex,
-                  capabilities: [
-                    if (trackerCapable) 'dtm-tracker',
-                    if (liveCapable) 'dtm-live',
-                  ],
+                  identity: identity,
+                  capabilities: caps,
+                  proof: proof,
                 ).toJson(),
               ),
             );

@@ -31,12 +31,12 @@ void main() {
 
     test('strict parsing rejects a mistyped or malformed edPubKey', () {
       expect(
-        () => HostEndpoint.fromJson(const {'addr': 'ws://h/ws', 'edPubKey': 7}),
+        () => HostEndpoint.fromJson(const {'addr': 'ws://192.168.1.1/ws', 'edPubKey': 7}),
         throwsFormatException,
       );
       expect(
         () => HostEndpoint.fromJson(const {
-          'addr': 'ws://h/ws',
+          'addr': 'ws://192.168.1.1/ws',
           'edPubKey': 'nothex',
         }),
         throwsFormatException,
@@ -50,8 +50,8 @@ void main() {
         isNull,
       );
       expect(
-        HostEndpoint.fromJson(const {'addr': 'ws://h/ws', 'edPubKey': ''}).addr,
-        'ws://h/ws',
+        HostEndpoint.fromJson(const {'addr': 'ws://192.168.1.1/ws', 'edPubKey': ''}).addr,
+        'ws://192.168.1.1/ws',
       );
     });
 
@@ -70,7 +70,7 @@ void main() {
 
     test('a hardened build refuses a plaintext ws:// endpoint', () {
       expect(
-        HostEndpoint.isValidAddr('ws://relay.example/ws', allowInsecure: false),
+        HostEndpoint.isValidAddr('ws://192.168.1.1/ws', allowInsecure: false),
         isFalse,
       );
       expect(
@@ -79,6 +79,9 @@ void main() {
       );
       // The deployed plain-ws relay must keep working in the default build.
       expect(HostEndpoint.isValidAddr('wss://soty.su/soty-ws'), isTrue);
+      expect(HostEndpoint.isValidAddr('ws://192.168.1.1:3100/ws'), isTrue);
+      expect(HostEndpoint.isValidAddr('ws://10.0.2.2:3100/ws'), isTrue);
+      expect(HostEndpoint.isValidAddr('ws://relay.example/ws'), isFalse);
     });
 
     test('an endpoint without a host or with another scheme is invalid', () {
@@ -91,7 +94,7 @@ void main() {
 
   group('HostLink', () {
     final endpoint = HostEndpoint(
-      addr: 'ws://relay.example:3000/ws',
+      addr: 'wss://relay.example:3000/ws',
       edPubKey: List.filled(64, 'b').join(),
     );
 
@@ -105,7 +108,7 @@ void main() {
 
     test('omit pk when the endpoint is not pinned', () {
       final link = HostLink.encode(
-        const HostEndpoint(addr: 'ws://relay.example:3000/ws'),
+        const HostEndpoint(addr: 'wss://relay.example:3000/ws'),
       );
       expect(link, isNot(contains('pk=')));
       expect(HostLink.fromRoute(link)!.edPubKey, isNull);
@@ -131,17 +134,17 @@ void main() {
         1,
         'not an endpoint',
         {
-          'addr': 'ws://h/ws',
+          'addr': 'ws://192.168.1.1/ws',
           'edPubKey': hex64,
         },
         {
-          'addr': 'ws://h/ws',
+          'addr': 'ws://192.168.1.1/ws',
           'edPubKey': 'zz',
         },
       ]);
       final hosts = HostLink.decodeStoredList(raw);
       expect(hosts.length, 1);
-      expect(hosts.single.addr, 'ws://h/ws');
+      expect(hosts.single.addr, 'ws://192.168.1.1/ws');
     });
 
     test('non-list payload yields no hosts', () {

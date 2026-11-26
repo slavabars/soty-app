@@ -538,6 +538,7 @@ void main() {
     testWidgets('relay failover switches between manual and auto mode',
         (tester) async {
       final prefs = AppPrefs();
+      await prefs.setRelayMode(RelayMode.auto);
       await tester.pumpWidget(
         MaterialApp(
           home: SettingsScreen(

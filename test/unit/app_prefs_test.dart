@@ -19,7 +19,7 @@ void main() {
       expect(prefs.storeOutgoing, isFalse);
       expect(prefs.background, isTrue);
       expect(prefs.sendOnEnter, isTrue);
-      expect(prefs.relayMode, RelayMode.auto);
+      expect(prefs.relayMode, RelayMode.manual);
     });
 
     test('the first launch picks a supported system language', () async {
@@ -111,7 +111,7 @@ void main() {
       await restored.load();
       expect(restored.locale, const Locale('en'));
       expect(restored.theme, SotyTheme.system);
-      expect(restored.relayMode, RelayMode.auto);
+      expect(restored.relayMode, RelayMode.manual);
     });
 
     test('setBackground notifies and persists', () async {

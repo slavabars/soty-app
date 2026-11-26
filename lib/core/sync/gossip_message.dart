@@ -24,6 +24,8 @@ sealed class GossipMessage {
             _boundedStrings(json['capabilities'], limits.maxCapabilities),
         myAddrs: _boundedAddrs(json['myAddrs']),
         announce: _boundedAnnounce(json['announce']),
+        nonce: _optionalHex(json, 'nonce', 32),
+        proof: _optionalHex(json, 'proof', 64),
       ),
       'WELCOME' => WelcomeMessage(
         serverTime: _intField(json, 'serverTime'),
@@ -34,6 +36,8 @@ sealed class GossipMessage {
           json['capabilities'],
           limits.maxCapabilities,
         ),
+        challenge: _optionalHex(json, 'challenge', 32),
+        proof: _optionalHex(json, 'proof', 64),
       ),
       'WANT' => WantMessage(since: _intOrZero(json, 'since')),
       'HAVE' => HaveMessage(ids: _boundedList(json['ids'])),
@@ -106,6 +110,22 @@ sealed class GossipMessage {
     if (value == null) return null;
     if (value is! String) {
       throw const FormatException('Gossip string field is mistyped');
+    }
+    return value;
+  }
+
+  /// An optional hex field (a 32-byte nonce/challenge or a 64-byte Ed25519
+  /// signature). Absent is allowed; any other length or mistyped value is a
+  /// protocol error.
+  static String? _optionalHex(
+    Map<String, dynamic> json,
+    String key,
+    int bytes,
+  ) {
+    final value = _optionalString(json, key);
+    if (value == null) return null;
+    if (!isHexOfLength(value, bytes)) {
+      throw FormatException('Gossip $key must be $bytes-byte hex');
     }
     return value;
   }
@@ -300,11 +320,18 @@ class HelloMessage extends GossipMessage {
   /// The host's own reachable WebSocket URL; set only by a federated host so
   /// the network can address it back. Bounded; absent for devices.
   final String? announce;
+
+  /// Client challenge for a signed WELCOME and the client's proof of owning
+  /// [myPeerId] over the host's challenge (federated hosts only).
+  final String? nonce;
+  final String? proof;
   const HelloMessage({
     required this.myPeerId,
     this.capabilities = const [],
     this.myAddrs = const [],
     this.announce,
+    this.nonce,
+    this.proof,
   });
 
   @override
@@ -314,6 +341,8 @@ class HelloMessage extends GossipMessage {
     'capabilities': capabilities,
     'myAddrs': myAddrs,
     if (announce != null) 'announce': announce,
+    if (nonce != null) 'nonce': nonce,
+    if (proof != null) 'proof': proof,
   };
 }
 
@@ -329,12 +358,19 @@ class WelcomeMessage extends GossipMessage {
   /// Host capabilities; `dtm-tracker` means the host answers PEER_LIST
   /// requests (old hosts omit it and are never polled).
   final List<String> capabilities;
+
+  /// Host challenge for a federated client's proof of key ownership and the
+  /// host's signature over the client's nonce (absent on old relays).
+  final String? challenge;
+  final String? proof;
   const WelcomeMessage({
     required this.serverTime,
     required this.retentionSeconds,
     required this.maxEnvelopeSize,
     this.identity,
     this.capabilities = const [],
+    this.challenge,
+    this.proof,
   });
 
   @override
@@ -345,6 +381,8 @@ class WelcomeMessage extends GossipMessage {
     'maxEnvelopeSize': maxEnvelopeSize,
     'identity': identity,
     'capabilities': capabilities,
+    if (challenge != null) 'challenge': challenge,
+    if (proof != null) 'proof': proof,
   };
 }
 

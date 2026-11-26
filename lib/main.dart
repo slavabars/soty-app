@@ -683,7 +683,11 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
   }
 
   void _registerDevExtensions(MessengerController messenger) {
-    if (!kDebugMode) return;
+    // Debug builds are still installable artifacts; a loopback seed server is
+    // only enabled when the e2e build explicitly asks for it. A plain debug
+    // APK must not hand edSeedHex/xSeedHex to another app on the device.
+    const devHttp = bool.fromEnvironment('SOTY_DEV_HTTP');
+    if (!kDebugMode || !devHttp) return;
     bindOptional(
       InternetAddress.loopbackIPv4,
       4701,

@@ -229,6 +229,16 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
     return row.read(db.transfers.transferId.count()) ?? 0;
   }
 
+  /// Bytes held by all incomplete transfers, for the staging cap.
+  Future<int> totalBytes() async {
+    final sum = db.transfers.byteCount.sum();
+    final row = await (selectOnly(db.transfers)
+          ..addColumns([sum])
+          ..where(db.transfers.completed.equals(0)))
+        .getSingle();
+    return row.read(sum) ?? 0;
+  }
+
   /// Oldest active transfer timestamp, used to bound the staging area.
   Future<StoredTransfer?> oldest() async {
     final row = await (select(db.transfers)

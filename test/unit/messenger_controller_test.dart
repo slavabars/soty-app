@@ -14,6 +14,8 @@ import 'package:dtm_app/core/media/media_store.dart';
 import 'package:dtm_app/core/security_limits.dart'
     show
         autoDownloadBytes,
+        maxStagingBytes,
+        maxUnsolicitedConversations,
         maxMediaBlobBytes,
         maxOutstandingChunkRequests,
         senderPushBytes,
@@ -2536,6 +2538,34 @@ void main() {
       }
     });
 
+    test('the staging area is bounded by total bytes', () async {
+      controller.startListening();
+      final remote = await importRemote('Staging flood');
+      for (var i = 0; i < 7; i++) {
+        final byteCount = 100 * 1024 * 1024;
+        final transferSuffix = i.toRadixString(16).padLeft(2, '0');
+        final blobSuffix = (i + 16).toRadixString(16).padLeft(2, '0');
+        final manifest = ChunkManifest(
+          transferId: transferSuffix * 32,
+          blobId: blobSuffix * 32,
+          kind: 'video',
+          mime: 'video/mp4',
+          byteCount: byteCount,
+          chunkSize: transferChunkBytes,
+          chunkCount: (byteCount + transferChunkBytes - 1) ~/
+              transferChunkBytes,
+          sha256: 'cd' * 32,
+          durationMs: 0,
+        );
+        await deliverManifest(remote, manifest);
+      }
+      await until(() async =>
+          (await controller.transferDao.totalBytes()) <= maxStagingBytes);
+      expect(await controller.transferDao.totalBytes(),
+          lessThanOrEqualTo(maxStagingBytes));
+      expect(await controller.transferDao.count(), lessThanOrEqualTo(6));
+    });
+
     test('a file over the configured limit is refused before any envelope',
         () async {
       final remote = await importRemote('Too big');
@@ -2575,6 +2605,30 @@ void main() {
     });
   });
 
+
+  test('caps conversations created by unknown senders', () async {
+    controller.startListening();
+    for (var i = 0; i < maxUnsolicitedConversations + 10; i++) {
+      final stranger = await DtmKeyPair.generate();
+      final envelope = await createEnvelopeForPubKey(
+        sender: stranger,
+        recipientX25519PubKeyHex: myXPubKey,
+        plaintext: MessagePayload.composeDirect(
+          senderX: await stranger.x25519PublicKeyHex,
+          text: 'unsolicited $i',
+        ),
+      );
+      await processor.process(
+        envelope,
+        source: TransportSource.mesh,
+        hops: 0,
+      );
+    }
+    final direct = controller.conversationList
+        .where((c) => !c.isGroup)
+        .length;
+    expect(direct, lessThanOrEqualTo(maxUnsolicitedConversations + 1));
+  });
 
   test('blocking a peer drops its envelopes before decryption', () async {
     final sender = await DtmKeyPair.generate();

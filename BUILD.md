@@ -150,7 +150,8 @@ adb -s emulator-5554 forward tcp:5012 tcp:4010   # A доступен на 10.0.
 adb -s emulator-5556 forward tcp:5011 tcp:4010   # B доступен на 10.0.2.2:5011
 
 # Установить и запустить на обоих.
-flutter build apk --debug --flavor site --dart-define=SOTY_CHANNEL=site
+flutter build apk --debug --flavor site --dart-define=SOTY_CHANNEL=site \
+  --dart-define=SOTY_DEV_HTTP=true
 adb -s emulator-5554 install -r build/app/outputs/flutter-apk/app-site-debug.apk
 adb -s emulator-5556 install -r build/app/outputs/flutter-apk/app-site-debug.apk
 adb -s emulator-5554 shell am start -n ru.dcns.soty/.MainActivity
@@ -163,7 +164,7 @@ adb -s emulator-5556 logcat -s flutter | grep -m1 'Soty p2p ready'
 
 Групповой сценарий на 5 клиентах: A создаёт группу с B–E, каждый участник отправляет по сообщению, все пять видят один bubble на автора; F (не участник, если есть шестой AVD) не получает group-контейнер. Отдельно проверьте, что чек и media-slice не уходят не-участнику, а `q1` с чужим `conversationId` не отдаёт blob.
 
-Debug-сборка также открывает send-хук только на loopback (`lib/main.dart`, `kDebugMode`), который гоняет `MessengerController` точно так же, как composer — e2e использует его, чтобы отправлять без тапов по пикселям:
+Debug-сборка открывает send-хук только на loopback и только при `--dart-define=SOTY_DEV_HTTP=true` (`lib/main.dart`). Без этого флага debug-APK не отдаёт seeds и не принимает debug-действия. Хук гоняет `MessengerController` точно так же, как composer — e2e использует его, чтобы отправлять без тапов по пикселям:
 
 ```bash
 adb -s emulator-5554 forward tcp:14701 tcp:4701

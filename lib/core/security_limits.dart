@@ -180,7 +180,7 @@ const int relayedCacheWindowMs = 30 * 24 * 60 * 60 * 1000;
 
 /// Byte ceiling for that relayed cache; past it the oldest relayed rows are
 /// pruned first (the 10 GiB bound on forwarded-for-others storage).
-const int relayedCacheMaxBytes = 10 * 1024 * 1024 * 1024;
+const int relayedCacheMaxBytes = 2 * 1024 * 1024 * 1024;
 
 /// Day counts offered in the "keep messages" picker; 0 stands for "keep
 /// forever". The default mirrors the historical fixed 30-day prune.
@@ -203,6 +203,11 @@ const int maxPeerIdLength = 128;
 /// Default / ceiling for the configurable active-peers pool (P2P).
 const int maxActivePeersDefault = 25;
 const int maxActivePeersCeiling = 50;
+
+/// Per-sender and aggregate inbound-envelope budgets on the p2p transport.
+/// A LAN peer cannot turn the device into an unbounded ciphertext relay.
+const int p2pInboundPerWindow = 300;
+const int p2pInboundGlobalPerWindow = 900;
 
 /// Once this many peers are known, a client stops asking trackers for peers
 /// (trackers remain a hosts source; the mailbox relay stays live).
@@ -243,8 +248,17 @@ const int hostServerMaxStoredBytes = 4 * 1024 * 1024 * 1024;
 /// aggregate ingress and disk growth even when every envelope is valid.
 const int hostGlobalRateLimitPerWindow = 6000;
 
+/// Per-connection discovery budgets. A client cannot loop SUBSCRIBE/WANT to
+/// force repeated multi-thousand-envelope dumps.
+const int hostSubscribeRatePerWindow = 20;
+const int hostWantRatePerWindow = 60;
+
+/// Aggregate DNS budget for federated announce checks; a hostile HELLO must
+/// not turn the relay into a resolver amplifier.
+const int hostDnsRatePerWindow = 30;
+
 /// Maximum members in one group chat (roster incl. self).
-const int maxGroupMembers = 512;
+const int maxGroupMembers = 58;
 
 /// Maximum group chats a device keeps. Each group is a row plus one member row
 /// per participant, so an unbounded count is a slow local DoS once peer-
@@ -368,7 +382,7 @@ const int maxTransferBytes = 2 * 1024 * 1024 * 1024;
 /// Files up to this size start downloading automatically. A larger file waits
 /// for an explicit tap, so a 1 GB video never consumes data behind the user's
 /// back (roadmap T-80).
-const int autoDownloadBytes = 100 * 1024 * 1024;
+const int autoDownloadBytes = 8 * 1024 * 1024;
 
 /// The sender only pushes slices for files this small (a few slices). A
 /// larger file is announced by its manifest and pulled by the recipient,
@@ -394,6 +408,15 @@ const int maxConcurrentServesPerPeer = 8;
 /// Chunked transfers kept in the staging area at once, so a hostile sender
 /// cannot make the device hold unbounded partial files (roadmap T-80).
 const int maxActiveTransfers = 64;
+
+/// Ceiling on the bytes held in the staging area (`parts/`) by all active
+/// transfers. A flood of manifests must not fill the sandbox before the
+/// per-file and count caps bite.
+const int maxStagingBytes = 512 * 1024 * 1024;
+
+/// Unsolicited 1:1 conversations the device keeps before it stops creating
+/// new ones for unknown Ed25519 senders.
+const int maxUnsolicitedConversations = 50;
 
 /// Media bytes cached on this device. Older blobs are pruned first, so a long
 /// media history cannot grow storage without bound; an explicit save keeps a

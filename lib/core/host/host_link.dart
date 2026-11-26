@@ -39,7 +39,33 @@ class HostEndpoint {
     final uri = Uri.tryParse(raw);
     if (uri == null || uri.host.isEmpty) return false;
     if (uri.scheme == 'wss') return true;
-    return uri.scheme == 'ws' && allowInsecure;
+    if (uri.scheme != 'ws' || !allowInsecure) return false;
+    // A plaintext socket is only acceptable on a literal private/LAN address
+    // (an OpenWrt relay on 192.168.x.x or the emulator host alias 10.0.2.2).
+    // A public `ws://` relay is rejected even in the permissive build.
+    final ip = InternetAddress.tryParse(uri.host);
+    if (ip == null) return false;
+    return _isPrivateAddress(ip);
+  }
+
+  static bool _isPrivateAddress(InternetAddress address) {
+    final raw = address.rawAddress;
+    if (raw.length == 4) {
+      final a = raw[0];
+      final b = raw[1];
+      if (a == 10 || a == 127) return true;
+      if (a == 172 && b >= 16 && b <= 31) return true;
+      if (a == 192 && b == 168) return true;
+      return false;
+    }
+    if (raw.length == 16) {
+      if (raw.sublist(0, 15).every((b) => b == 0) && raw[15] == 1) {
+        return true; // ::1 loopback (test/dev only; learned hosts reject it)
+      }
+      if ((raw[0] & 0xfe) == 0xfc) return true; // ULA fc00::/7
+      if (raw[0] == 0xfe && (raw[1] & 0xc0) == 0x80) return true; // fe80::/10
+    }
+    return false;
   }
 
   static bool _validAddr(String raw) => isValidAddr(raw);
@@ -53,9 +79,14 @@ class HostEndpoint {
     String raw, {
     bool allowLoopback = false,
   }) {
-    if (!isValidAddr(raw)) return false;
     final uri = Uri.tryParse(raw);
     if (uri == null || uri.host.isEmpty) return false;
+    if (uri.scheme != 'ws' && uri.scheme != 'wss') return false;
+    // The production rule rejects public plaintext sockets; the test seam
+    // additionally accepts loopback ws endpoints used by fake relay servers.
+    if (uri.scheme == 'ws' && !allowLoopback && !isValidAddr(raw)) {
+      return false;
+    }
     final host = uri.host.toLowerCase();
     if (host == 'localhost' || host.endsWith('.localhost')) return false;
     final ip = InternetAddress.tryParse(uri.host);

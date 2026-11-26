@@ -259,12 +259,12 @@ void main() {
         'type': 'PEER_LIST',
         'peers': <dynamic>[],
         'hosts': [
-          {'addr': 'ws://example.com/ws', 'edPubKey': ''},
+          {'addr': 'wss://example.com/ws', 'edPubKey': ''},
           {'addr': 'ftp://not-ws', 'edPubKey': ''},
           'junk',
         ],
       }) as PeerListMessage;
-      expect(decoded.hosts.single.addr, 'ws://example.com/ws');
+      expect(decoded.hosts.single.addr, 'wss://example.com/ws');
     });
 
     test('PRESENCE round-trips its online keys and timestamp', () {

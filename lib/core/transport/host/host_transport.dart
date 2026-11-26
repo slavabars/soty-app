@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../../models/envelope.dart';
 import '../../../models/peer.dart';
+import '../../crypto/handshake.dart';
 import '../../host/host_link.dart';
 import '../../security_limits.dart';
 import '../../storage/settings_dao.dart';
@@ -118,7 +119,7 @@ class HostTransport implements Transport {
   String? _myEdPubKey;
   String? _myXPubKey;
   String? _myPeerId;
-  RelayMode _relayMode = RelayMode.auto;
+  RelayMode _relayMode = RelayMode.manual;
   bool _running = false;
   bool _stopping = false;
 
@@ -203,7 +204,7 @@ class HostTransport implements Transport {
     final modeRaw = await settings.get(relayModeSettingsKey);
     _relayMode = RelayMode.values.firstWhere(
       (mode) => mode.name == modeRaw,
-      orElse: () => RelayMode.auto,
+      orElse: () => RelayMode.manual,
     );
     final raw = await settings.get(_settingsKey);
     if (raw == null || raw.isEmpty) return;
@@ -483,12 +484,14 @@ class HostTransport implements Transport {
       }
       final myPeerId = _myPeerId ?? myEd;
       final addrs = advertiseAddrs?.call() ?? const <String>[];
+      conn.clientNonce = randomHandshakeNonce();
       ws.add(
         jsonEncode(
           HelloMessage(
             myPeerId: myPeerId,
             capabilities: const [dtmPresence],
             myAddrs: addrs.take(maxPeerAddrsOnWire).toList(growable: false),
+            nonce: conn.clientNonce,
           ).toJson(),
         ),
       );
@@ -565,11 +568,45 @@ class HostTransport implements Transport {
     WebSocket ws,
   ) async {
     switch (message) {
-      case WelcomeMessage(:final identity, :final capabilities):
+      case WelcomeMessage(
+          :final identity,
+          :final capabilities,
+          :final proof,
+          :final serverTime,
+        ):
         conn.trackerCapable = capabilities.contains('dtm-tracker');
         conn.liveCapable = capabilities.contains('dtm-live');
+        final expected = conn.endpoint.edPubKey;
+        if (identity != null && conn.clientNonce != null) {
+          if (proof != null) {
+            final ok = await verifyHandshakeData(
+              publicKeyHex: identity,
+              data: welcomeProofData(
+                nonce: conn.clientNonce!,
+                serverTime: serverTime,
+                identity: identity,
+                capabilities: capabilities,
+              ),
+              signatureHex: proof,
+            );
+            if (!ok) {
+              debugPrint('[host] signed WELCOME is invalid');
+              await _dropAndWait(conn);
+              return;
+            }
+          } else if (expected != null) {
+            // A pinned relay must prove it owns the key; a bare string is not
+            // authentication (F-42).
+            debugPrint('[host] pinned relay sent an unsigned WELCOME');
+            await _dropAndWait(conn);
+            return;
+          }
+        } else if (expected != null) {
+          debugPrint('[host] pinned relay sent no identity');
+          await _dropAndWait(conn);
+          return;
+        }
         if (identity != null && conn.pinnedOk == null) {
-          final expected = conn.endpoint.edPubKey;
           conn.pinnedOk = expected == null || expected == identity;
           debugPrint(
             '[host] welcome identity=$identity pinned=${conn.pinnedOk}',
@@ -807,6 +844,7 @@ class _HostConnection {
   bool trackerCapable = false;
   bool liveCapable = false;
   bool? pinnedOk;
+  String? clientNonce;
   Timer? reconnect;
   final Map<String, Completer<bool>> pending = {};
 

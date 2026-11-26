@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:dtm_app/core/crypto/envelope_crypto.dart';
 import 'package:dtm_app/core/crypto/keypair.dart';
+import 'package:dtm_app/core/security_limits.dart'
+    show maxGroupMembers, maxPlaintextBytes;
 import 'package:dtm_app/core/storage/conversation_dao.dart';
 import 'package:dtm_app/core/storage/database.dart';
 import 'package:dtm_app/core/storage/message_dao.dart';
@@ -321,4 +325,19 @@ void main() {
       isNot(contains('still here?')),
     );
   });
+  test('the maximum roster fits one plaintext envelope', () {
+    final keys = [
+      for (var i = 0; i < maxGroupMembers; i++)
+        i.toRadixString(16).padLeft(64, '0'),
+    ];
+    final raw = MessagePayload.composeGroupRoster(
+      conversationId: 'a' * 64,
+      senderX: 'b' * 64,
+      action: 'a',
+      targetKey: 'c' * 64,
+      roster: keys,
+    );
+    expect(utf8.encode(raw).length, lessThanOrEqualTo(maxPlaintextBytes));
+  });
+
 }
