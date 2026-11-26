@@ -19,7 +19,7 @@ sealed class GossipMessage {
   static GossipMessage fromJson(Map<String, dynamic> json) {
     return switch (json['type']) {
       'HELLO' => HelloMessage(
-        myPeerId: _stringField(json, 'myPeerId'),
+        myPeerId: _peerIdField(json),
         capabilities:
             _boundedStrings(json['capabilities'], limits.maxCapabilities),
         myAddrs: _boundedAddrs(json['myAddrs']),
@@ -71,6 +71,16 @@ sealed class GossipMessage {
       ),
       _ => throw FormatException('Unknown gossip message: ${json['type']}'),
     };
+  }
+
+  /// A HELLO peer id is persisted by the tracker and echoed in PEER_LIST,
+  /// so bound it at the parser like every other remote-driven string.
+  static String _peerIdField(Map<String, dynamic> json) {
+    final value = _stringField(json, 'myPeerId');
+    if (value.isEmpty || value.length > limits.maxPeerIdLength) {
+      throw const FormatException('Gossip peer id is out of bounds');
+    }
+    return value;
   }
 
   static int _intField(Map<String, dynamic> json, String key) {

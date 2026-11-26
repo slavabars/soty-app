@@ -270,6 +270,35 @@ class _DtmAppState extends State<DtmApp> with WidgetsBindingObserver {
       return;
     }
     if (hostEndpoint != null) {
+      // A relay link is an external intent: any page or app can launch it.
+      // Require a pinned identity and explicit user consent before a hostile
+      // link can add and dial an endpoint.
+      if (hostEndpoint.edPubKey == null) {
+        _showInviteError('Relay link must include a pinned key');
+        return;
+      }
+      if (!mounted) return;
+      final approved = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Add relay host?'),
+          content: Text(
+            '${hostEndpoint!.addr}\n\n'
+            'Identity: ${hostEndpoint.edPubKey}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      );
+      if (approved != true) return;
       final host = _findHostTransport(messenger);
       if (host == null) return;
       final added = await host.addHost(hostEndpoint);

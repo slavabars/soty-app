@@ -74,7 +74,7 @@ void main() {
     );
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'messages');
     expect(
@@ -103,7 +103,7 @@ void main() {
     );
   });
 
-  test('a v2 database is upgraded to v20 in eleven hops', () async {
+  test('a v2 database is upgraded to v21 in eleven hops', () async {
     _writeV2Schema('${tempDir.path}/dtm.sqlite');
 
     final db = await AppDatabase.open(tempDir.path);
@@ -122,7 +122,7 @@ void main() {
     );
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'messages');
     expect(
@@ -157,14 +157,14 @@ void main() {
     );
   });
 
-  test('a v3 database is upgraded to v20 with chain tracking', () async {
+  test('a v3 database is upgraded to v21 with chain tracking', () async {
     _writeV3Schema('${tempDir.path}/dtm.sqlite');
 
     final db = await AppDatabase.open(tempDir.path);
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'messages');
     expect(
@@ -199,14 +199,14 @@ void main() {
     );
   });
 
-  test('a v7 database is upgraded to v20 with peers.is_contact', () async {
+  test('a v7 database is upgraded to v21 with peers.is_contact', () async {
     _writeV7Schema('${tempDir.path}/dtm.sqlite');
 
     final db = await AppDatabase.open(tempDir.path);
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'peers');
     expect(
@@ -236,7 +236,7 @@ void main() {
     expect(conversations.single.read<int>('read_at'), 100);
   });
 
-  test('a v8 database is upgraded to v20 and backfills read_at with last_ts',
+  test('a v8 database is upgraded to v21 and backfills read_at with last_ts',
       () async {
     _writeV8Schema('${tempDir.path}/dtm.sqlite');
 
@@ -244,7 +244,7 @@ void main() {
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final rows = await db.customSelect(
       'SELECT id, last_ts, read_at FROM conversations',
@@ -266,7 +266,7 @@ void main() {
   });
 
   test(
-      'a v9 database is upgraded to v20 with the control flag and '
+      'a v9 database is upgraded to v21 with the control flag and '
       'message_statuses, keeping existing messages plain', () async {
     _writeV9Schema('${tempDir.path}/dtm.sqlite');
 
@@ -274,7 +274,7 @@ void main() {
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'messages');
     expect(cols, contains('control'));
@@ -301,7 +301,7 @@ void main() {
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     final cols = await _columns(db, 'messages');
     expect(cols, contains('group_payload'));
@@ -321,7 +321,7 @@ void main() {
     addTearDown(db.close);
 
     final versionRows = await db.customSelect('PRAGMA user_version').get();
-    expect(versionRows.single.read<int>('user_version'), 20);
+    expect(versionRows.single.read<int>('user_version'), 21);
 
     expect(await _tables(db), contains('media_blobs'));
 

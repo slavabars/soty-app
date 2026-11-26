@@ -99,12 +99,23 @@ flutter run -d <device-id> --release
 
 BLE на эмуляторе недоступен, поэтому межdevice-проверка идёт через транспорт libp2p. `P2PTransport` слушает **фиксированный** порт (`p2pListenAddr = /ip4/0.0.0.0/tcp/4010`), поэтому до него можно достучаться через `adb forward`.
 
-Два эмулятора должны быть **двумя разными AVD**. Два `-read-only` экземпляра одного AVD делят один записываемый userdata, поэтому оба получают **одну и ту же** строку `identity_entry` и **один и тот же** libp2p peer id — «второе устройство» на самом деле первое, и тест ничего не доказывает. Проверьте это до того, как доверять прогону:
+Для групп и общения между клиентами можно поднять **до пяти** эмуляторов одновременно. Каждый клиент обязан быть на **своём AVD**: `Medium_Phone_API_36`, `Soty_B`, `Soty_C`, `Soty_D`, `Soty_E` на портах `5554`, `5556`, `5558`, `5560`, `5562`. Два `-read-only` экземпляра одного AVD делят один записываемый userdata, поэтому оба получают **одну и ту же** строку `identity_entry` и **один и тот же** libp2p peer id — «второе устройство» на самом деле первое, и тест ничего не доказывает. Проверьте `android_id` у всех клиентов до того, как доверять прогону:
 
 ```bash
-adb -s emulator-5554 shell settings get secure android_id
-adb -s emulator-5556 shell settings get secure android_id   # должны отличаться
+for p in 5554 5556 5558 5560 5562; do
+  adb -s emulator-$p shell settings get secure android_id
+done   # пять разных значений
 ```
+
+Готовый harness (только запуск/остановка, без установки пакетов и без изменений роутера):
+
+```bash
+scripts/e2e-emulators.sh status
+scripts/e2e-emulators.sh start 5 --create   # создаст Soty_C..E при необходимости
+scripts/e2e-emulators.sh stop 5
+```
+
+Дальше базовый сценарий описан для двух клиентов (A/B); для группы добавьте C–E теми же шагами, каждому свой `adb forward` (например, `14703→4701`, `14704→4701`, `14705→4701`) и свой advertised multiaddr.
 
 Создайте второй AVD один раз (`cmdline-tools` не нужны — скопируйте конфиг и дайте эмулятору создать свежий раздел данных):
 
@@ -128,6 +139,7 @@ $EMU -avd Medium_Phone_API_36 -port 5554 -no-window \
   -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim &
 $EMU -avd Soty_B -port 5556 -no-window \
   -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim &
+# Дополнительные клиенты: Soty_C 5558, Soty_D 5560, Soty_E 5562.
 adb wait-for-device
 adb -s emulator-5554 shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 3; done'
 adb -s emulator-5556 shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 3; done'
@@ -148,6 +160,8 @@ adb -s emulator-5556 logcat -s flutter | grep -m1 'Soty p2p ready'
 ```
 
 На устройстве A разрешите запрос nearby-devices (идентичность создаётся по тапу «Continue» в онбординге; устройству B тоже нужен свой тап), откройте **Identity** и скопируйте invite, затем на A откройте **New chat** и введите X25519-ключ B, libp2p peer id и `/ip4/10.0.2.2/tcp/5011` (эмулятор достучится до loopback хоста по `10.0.2.2`). Отправьте сообщение, ответьте с B и убедитесь, что обе ветки свернулись в один диалог.
+
+Групповой сценарий на 5 клиентах: A создаёт группу с B–E, каждый участник отправляет по сообщению, все пять видят один bubble на автора; F (не участник, если есть шестой AVD) не получает group-контейнер. Отдельно проверьте, что чек и media-slice не уходят не-участнику, а `q1` с чужим `conversationId` не отдаёт blob.
 
 Debug-сборка также открывает send-хук только на loopback (`lib/main.dart`, `kDebugMode`), который гоняет `MessengerController` точно так же, как composer — e2e использует его, чтобы отправлять без тапов по пикселям:
 

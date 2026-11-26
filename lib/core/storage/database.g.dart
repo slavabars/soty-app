@@ -4633,6 +4633,18 @@ class $TransfersTable extends Transfers
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _completedMeta = const VerificationMeta(
+    'completed',
+  );
+  @override
+  late final GeneratedColumn<int> completed = GeneratedColumn<int>(
+    'completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     transferId,
@@ -4648,6 +4660,7 @@ class $TransfersTable extends Transfers
     conversationId,
     started,
     timestamp,
+    completed,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4760,6 +4773,12 @@ class $TransfersTable extends Transfers
         timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
       );
     }
+    if (data.containsKey('completed')) {
+      context.handle(
+        _completedMeta,
+        completed.isAcceptableOrUnknown(data['completed']!, _completedMeta),
+      );
+    }
     return context;
   }
 
@@ -4821,6 +4840,10 @@ class $TransfersTable extends Transfers
         DriftSqlType.int,
         data['${effectivePrefix}timestamp'],
       )!,
+      completed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed'],
+      )!,
     );
   }
 
@@ -4851,6 +4874,11 @@ class Transfer extends DataClass implements Insertable<Transfer> {
   /// [autoDownloadBytes], explicit for larger ones.
   final int started;
   final int timestamp;
+
+  /// A finished transfer keeps its manifest row (without slices) so the
+  /// device can still prove who may request the completed blob. Excluded
+  /// from active counts and staging bounds; pruned by age like any row.
+  final int completed;
   const Transfer({
     required this.transferId,
     required this.blobId,
@@ -4865,6 +4893,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     required this.conversationId,
     required this.started,
     required this.timestamp,
+    required this.completed,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4882,6 +4911,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     map['conversation_id'] = Variable<String>(conversationId);
     map['started'] = Variable<int>(started);
     map['timestamp'] = Variable<int>(timestamp);
+    map['completed'] = Variable<int>(completed);
     return map;
   }
 
@@ -4900,6 +4930,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       conversationId: Value(conversationId),
       started: Value(started),
       timestamp: Value(timestamp),
+      completed: Value(completed),
     );
   }
 
@@ -4922,6 +4953,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       conversationId: serializer.fromJson<String>(json['conversationId']),
       started: serializer.fromJson<int>(json['started']),
       timestamp: serializer.fromJson<int>(json['timestamp']),
+      completed: serializer.fromJson<int>(json['completed']),
     );
   }
   @override
@@ -4941,6 +4973,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       'conversationId': serializer.toJson<String>(conversationId),
       'started': serializer.toJson<int>(started),
       'timestamp': serializer.toJson<int>(timestamp),
+      'completed': serializer.toJson<int>(completed),
     };
   }
 
@@ -4958,6 +4991,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     String? conversationId,
     int? started,
     int? timestamp,
+    int? completed,
   }) => Transfer(
     transferId: transferId ?? this.transferId,
     blobId: blobId ?? this.blobId,
@@ -4972,6 +5006,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     conversationId: conversationId ?? this.conversationId,
     started: started ?? this.started,
     timestamp: timestamp ?? this.timestamp,
+    completed: completed ?? this.completed,
   );
   Transfer copyWithCompanion(TransfersCompanion data) {
     return Transfer(
@@ -4996,6 +5031,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           : this.conversationId,
       started: data.started.present ? data.started.value : this.started,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      completed: data.completed.present ? data.completed.value : this.completed,
     );
   }
 
@@ -5014,7 +5050,8 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           ..write('senderX: $senderX, ')
           ..write('conversationId: $conversationId, ')
           ..write('started: $started, ')
-          ..write('timestamp: $timestamp')
+          ..write('timestamp: $timestamp, ')
+          ..write('completed: $completed')
           ..write(')'))
         .toString();
   }
@@ -5034,6 +5071,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     conversationId,
     started,
     timestamp,
+    completed,
   );
   @override
   bool operator ==(Object other) =>
@@ -5051,7 +5089,8 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           other.senderX == this.senderX &&
           other.conversationId == this.conversationId &&
           other.started == this.started &&
-          other.timestamp == this.timestamp);
+          other.timestamp == this.timestamp &&
+          other.completed == this.completed);
 }
 
 class TransfersCompanion extends UpdateCompanion<Transfer> {
@@ -5068,6 +5107,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
   final Value<String> conversationId;
   final Value<int> started;
   final Value<int> timestamp;
+  final Value<int> completed;
   final Value<int> rowid;
   const TransfersCompanion({
     this.transferId = const Value.absent(),
@@ -5083,6 +5123,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     this.conversationId = const Value.absent(),
     this.started = const Value.absent(),
     this.timestamp = const Value.absent(),
+    this.completed = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransfersCompanion.insert({
@@ -5099,6 +5140,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     this.conversationId = const Value.absent(),
     this.started = const Value.absent(),
     this.timestamp = const Value.absent(),
+    this.completed = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : transferId = Value(transferId),
        blobId = Value(blobId),
@@ -5123,6 +5165,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     Expression<String>? conversationId,
     Expression<int>? started,
     Expression<int>? timestamp,
+    Expression<int>? completed,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5139,6 +5182,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
       if (conversationId != null) 'conversation_id': conversationId,
       if (started != null) 'started': started,
       if (timestamp != null) 'timestamp': timestamp,
+      if (completed != null) 'completed': completed,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5157,6 +5201,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     Value<String>? conversationId,
     Value<int>? started,
     Value<int>? timestamp,
+    Value<int>? completed,
     Value<int>? rowid,
   }) {
     return TransfersCompanion(
@@ -5173,6 +5218,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
       conversationId: conversationId ?? this.conversationId,
       started: started ?? this.started,
       timestamp: timestamp ?? this.timestamp,
+      completed: completed ?? this.completed,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5219,6 +5265,9 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     if (timestamp.present) {
       map['timestamp'] = Variable<int>(timestamp.value);
     }
+    if (completed.present) {
+      map['completed'] = Variable<int>(completed.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5241,6 +5290,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
           ..write('conversationId: $conversationId, ')
           ..write('started: $started, ')
           ..write('timestamp: $timestamp, ')
+          ..write('completed: $completed, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8114,6 +8164,7 @@ typedef $$TransfersTableCreateCompanionBuilder =
       Value<String> conversationId,
       Value<int> started,
       Value<int> timestamp,
+      Value<int> completed,
       Value<int> rowid,
     });
 typedef $$TransfersTableUpdateCompanionBuilder =
@@ -8131,6 +8182,7 @@ typedef $$TransfersTableUpdateCompanionBuilder =
       Value<String> conversationId,
       Value<int> started,
       Value<int> timestamp,
+      Value<int> completed,
       Value<int> rowid,
     });
 
@@ -8205,6 +8257,11 @@ class $$TransfersTableFilterComposer
 
   ColumnFilters<int> get timestamp => $composableBuilder(
     column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get completed => $composableBuilder(
+    column: $table.completed,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8282,6 +8339,11 @@ class $$TransfersTableOrderingComposer
     column: $table.timestamp,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get completed => $composableBuilder(
+    column: $table.completed,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TransfersTableAnnotationComposer
@@ -8339,6 +8401,9 @@ class $$TransfersTableAnnotationComposer
 
   GeneratedColumn<int> get timestamp =>
       $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<int> get completed =>
+      $composableBuilder(column: $table.completed, builder: (column) => column);
 }
 
 class $$TransfersTableTableManager
@@ -8382,6 +8447,7 @@ class $$TransfersTableTableManager
                 Value<String> conversationId = const Value.absent(),
                 Value<int> started = const Value.absent(),
                 Value<int> timestamp = const Value.absent(),
+                Value<int> completed = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransfersCompanion(
                 transferId: transferId,
@@ -8397,6 +8463,7 @@ class $$TransfersTableTableManager
                 conversationId: conversationId,
                 started: started,
                 timestamp: timestamp,
+                completed: completed,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8414,6 +8481,7 @@ class $$TransfersTableTableManager
                 Value<String> conversationId = const Value.absent(),
                 Value<int> started = const Value.absent(),
                 Value<int> timestamp = const Value.absent(),
+                Value<int> completed = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransfersCompanion.insert(
                 transferId: transferId,
@@ -8429,6 +8497,7 @@ class $$TransfersTableTableManager
                 conversationId: conversationId,
                 started: started,
                 timestamp: timestamp,
+                completed: completed,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

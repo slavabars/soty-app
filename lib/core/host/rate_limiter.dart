@@ -42,14 +42,20 @@ class RateLimiter {
   }
 
   void _evictIfNeeded() {
-    if (_buckets.length < _maxKeys) return;
-    final oldest = _buckets.values.map((b) => b.window).reduce(
-      (a, b) => a < b ? a : b,
-    );
-    _buckets.removeWhere((_, b) => b.window <= oldest);
-    if (_buckets.length >= _maxKeys && _buckets.isNotEmpty) {
-      final first = _buckets.keys.first;
-      _buckets.remove(first);
+    // Evict one oldest bucket at a time. Removing every bucket from the same
+    // window (the previous behaviour) let a flood of fresh keys reset the
+    // budgets of live senders, which is exactly what key rotation exploits.
+    while (_buckets.length >= _maxKeys) {
+      String? oldestKey;
+      var oldestWindow = 0;
+      for (final entry in _buckets.entries) {
+        if (oldestKey == null || entry.value.window < oldestWindow) {
+          oldestKey = entry.key;
+          oldestWindow = entry.value.window;
+        }
+      }
+      if (oldestKey == null) return;
+      _buckets.remove(oldestKey);
     }
   }
 }

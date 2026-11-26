@@ -61,6 +61,11 @@ const int maxGossipItems = 256;
 /// Maximum outbound gossip frames buffered before older frames are dropped.
 const int maxGossipQueue = 64;
 
+/// Maximum decoded frames buffered by the length-prefixed decoder while the
+/// consumer is slower than the peer. Bounded so a fast sender cannot grow the
+/// queue (and memory) without limit.
+const int maxDecodedFrameQueue = 256;
+
 /// Upper bound (ms) for a `since` scan window; earlier windows are clamped.
 const int gossipMaxScanWindow = 30 * 24 * 60 * 60 * 1000;
 
@@ -222,11 +227,21 @@ const int maxKnownPeers = 8192;
 /// out, and a 30-day retention is meaningless in 128 MiB of RAM. Beyond
 /// this count or [hostMaxStoredBytes] the oldest rows are evicted first;
 /// signed prune roots cover only age/subscription pruning, so cap eviction
-/// is a cache drop, not a retention promise. A server-side `dtm_host` does
-/// not apply this cap; the router implementation mirrors it in
-/// `relay-owrt/internal/limits`.
+/// is a cache drop, not a retention promise. A server-side `dtm_host` uses
+/// its own, larger cap ([hostServerMaxStoredEnvelopes]/[hostServerMaxStoredBytes]).
 const int hostMaxStoredEnvelopes = 20000;
 const int hostMaxStoredBytes = 32 * 1024 * 1024;
+
+/// Disk ceiling for the VPS `dtm_host`. A relay shares the host with nginx
+/// and the site, so an unauthenticated publish flood must not be able to
+/// fill the disk. Oldest-first eviction keeps the newest window available.
+const int hostServerMaxStoredEnvelopes = 1000000;
+const int hostServerMaxStoredBytes = 4 * 1024 * 1024 * 1024;
+
+/// Global stored-envelope budget per rate window across *all* senders. The
+/// per-sender bucket cannot stop fresh-key rotation; this backstop bounds
+/// aggregate ingress and disk growth even when every envelope is valid.
+const int hostGlobalRateLimitPerWindow = 6000;
 
 /// Maximum members in one group chat (roster incl. self).
 const int maxGroupMembers = 512;

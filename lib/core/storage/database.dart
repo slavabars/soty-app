@@ -234,6 +234,11 @@ class Transfers extends Table {
   IntColumn get started => integer().withDefault(const Constant(0))();
   IntColumn get timestamp => integer().withDefault(const Constant(0))();
 
+  /// A finished transfer keeps its manifest row (without slices) so the
+  /// device can still prove who may request the completed blob. Excluded
+  /// from active counts and staging bounds; pruned by age like any row.
+  IntColumn get completed => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {transferId};
 }
@@ -287,7 +292,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -348,6 +353,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(transfers);
         await m.createTable(transferParts);
         await m.addColumn(messages, messages.directOnly);
+      }
+      if (from < 21 && from >= 17) {
+        await m.addColumn(transfers, transfers.completed);
       }
       if (from < 18 && from >= 17) {
         await m.addColumn(transfers, transfers.started);

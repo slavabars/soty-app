@@ -1576,6 +1576,34 @@ void main() {
       expect(receipt.ids, [inbound.id]);
     });
 
+    test('an unknown sender cannot choose the receipt address', () async {
+      controller.startListening();
+      processor.registerTransport(transport);
+      await transport.start(
+        myEdPubKey: myEdPubKey,
+        myXPubKey: myXPubKey,
+        displayName: 'Self',
+      );
+      final stranger = await DtmKeyPair.generate();
+      final victim = await DtmKeyPair.generate();
+      final victimX = await victim.x25519PublicKeyHex;
+
+      final inbound = await createEnvelopeForPubKey(
+        sender: stranger,
+        recipientX25519PubKeyHex: myXPubKey,
+        plaintext: MessagePayload.composeDirect(
+          senderX: victimX,
+          text: 'reflected',
+        ),
+      );
+      await processor.process(inbound, source: TransportSource.mesh, hops: 0);
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(
+        transport.sent.where((e) => e.recipientPubKey == victimX),
+        isEmpty,
+      );
+    });
+
     test('opening a chat sends a read receipt for unread inbound', () async {
       controller.startListening();
       processor.registerTransport(transport);
@@ -2137,6 +2165,8 @@ void main() {
       expect(stored, isNotNull);
       // No raw slice renders as its own bubble; the sender keeps the file.
       expect(await stored!.readBytes(), fileBytes(200 * 1024));
+      expect(await controller.transferDao.count(), 0,
+          reason: 'the sender manifest is complete, not an active download');
     });
 
     test('a file can be sent from a path without reading it first', () async {
@@ -2334,7 +2364,13 @@ void main() {
         transport.sent.single,
         recipientX25519KeyPair: remote.xKeyPair,
       );
-      expect(MessagePayload.parse(raw), isA<FileManifestPayload>());
+      final payload = MessagePayload.parse(raw);
+      expect(payload, isA<FileManifestPayload>());
+      final manifest = (payload as FileManifestPayload).manifest;
+      final stored = await controller.transferDao.get(manifest.transferId);
+      expect(stored, isNotNull);
+      expect(stored!.completed, isTrue,
+          reason: 'a completed sender row serves later slice requests');
     });
 
     test('a file over 100 MB waits for an explicit tap, then pulls slices',
@@ -2447,6 +2483,57 @@ void main() {
       final chunk = (await served())!.chunk;
       expect(chunk.index, 0);
       expect(chunk.dataBase64, file.chunks.first.dataBase64);
+    });
+
+    test('a third party cannot pull a direct file by guessing its ids',
+        () async {
+      processor.registerTransport(transport);
+      await transport.start(
+        myEdPubKey: myEdPubKey,
+        myXPubKey: myXPubKey,
+        displayName: 'Self',
+      );
+      controller.startListening();
+      final sender = await importRemote('File sender');
+      final attacker = await importRemote('Not the recipient');
+      final attackerX = await attacker.x25519PublicKeyHex;
+      final file = await parts(150 * 1024);
+      await deliverManifest(sender, file.manifest);
+      for (final chunk in file.chunks) {
+        await deliverChunk(sender, chunk);
+      }
+      await until(() async {
+        final messages = await controller.messagesFor(
+          await sender.x25519PublicKeyHex,
+        );
+        return messages.isNotEmpty && messages.single.media != null;
+      });
+      transport.sent.clear();
+
+      final request = MessagePayload.composeFileRequestDirect(
+        senderX: attackerX,
+        transferId: file.manifest.transferId,
+        blobId: file.manifest.blobId,
+        index: 0,
+      );
+      await processor.process(
+        await createEnvelopeForPubKey(
+          sender: attacker,
+          recipientX25519PubKeyHex: myXPubKey,
+          plaintext: request,
+        ),
+        source: TransportSource.mesh,
+        hops: 0,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      for (final envelope in transport.sent) {
+        if (envelope.recipientPubKey != attackerX) continue;
+        final raw = await decryptFor(
+          envelope,
+          recipientX25519KeyPair: attacker.xKeyPair,
+        );
+        expect(MessagePayload.parse(raw), isNot(isA<FileChunkPayload>()));
+      }
     });
 
     test('a file over the configured limit is refused before any envelope',

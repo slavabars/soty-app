@@ -511,10 +511,17 @@ class MessageDao extends DatabaseAccessor<AppDatabase> {
         ),
       );
     }
-    if (ids.isNotEmpty) {
-      await (delete(db.messages)..where((m) => m.id.isIn(ids))).go();
-      await (delete(db.outgoingBodies)..where((b) => b.id.isIn(ids))).go();
-      await (delete(db.messageStatuses)..where((s) => s.id.isIn(ids))).go();
+    // SQLite builds bound-variable limits as low as 999. A normal 30-day
+    // prune can exceed that, and one failed statement would roll back the
+    // whole transaction and silently defeat retention. Delete in chunks.
+    for (var i = 0; i < ids.length; i += 400) {
+      final chunk = ids.sublist(
+        i,
+        i + 400 > ids.length ? ids.length : i + 400,
+      );
+      await (delete(db.messages)..where((m) => m.id.isIn(chunk))).go();
+      await (delete(db.outgoingBodies)..where((b) => b.id.isIn(chunk))).go();
+      await (delete(db.messageStatuses)..where((s) => s.id.isIn(chunk))).go();
     }
     return PrunedBatch(
       cutoffTs: cutoff,

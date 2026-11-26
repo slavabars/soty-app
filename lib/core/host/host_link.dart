@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show InternetAddress;
 
 import '../crypto/hex.dart' show isHexOfLength;
 import '../security_limits.dart' show maxAddrLength;
@@ -42,6 +43,29 @@ class HostEndpoint {
   }
 
   static bool _validAddr(String raw) => isValidAddr(raw);
+
+  /// Whether a relay endpoint learned from an untrusted tracker may be dialed.
+  /// Loopback, unspecified, link-local and multicast targets are refused:
+  /// they are the app's own services or the local network, not a relay. LAN
+  /// private ranges are allowed because an OpenWrt relay lives there.
+  /// [allowLoopback] is a test seam only.
+  static bool isSafeLearnedAddr(
+    String raw, {
+    bool allowLoopback = false,
+  }) {
+    if (!isValidAddr(raw)) return false;
+    final uri = Uri.tryParse(raw);
+    if (uri == null || uri.host.isEmpty) return false;
+    final host = uri.host.toLowerCase();
+    if (host == 'localhost' || host.endsWith('.localhost')) return false;
+    final ip = InternetAddress.tryParse(uri.host);
+    if (ip == null) return true;
+    if (!allowLoopback && ip.isLoopback) return false;
+    if (ip.isLinkLocal || ip.isMulticast) return false;
+    final addressBytes = ip.rawAddress;
+    if (addressBytes.every((b) => b == 0)) return false;
+    return true;
+  }
 
   /// Strict parsing; malformed values throw [FormatException].
   factory HostEndpoint.fromJson(Map<String, dynamic> json) {

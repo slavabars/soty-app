@@ -33,10 +33,15 @@ int? frameLengthFromHeader(
 class LengthPrefixedDecoder
     extends StreamTransformerBase<List<int>, List<int>> {
   final int _maxBytes;
+  final int _maxQueuedFrames;
   final StreamController<List<int>> _buffer = StreamController();
+  int _queued = 0;
 
-  LengthPrefixedDecoder({int maxBytes = limits.maxFrameBytes})
-    : _maxBytes = maxBytes;
+  LengthPrefixedDecoder({
+    int maxBytes = limits.maxFrameBytes,
+    int maxQueuedFrames = limits.maxDecodedFrameQueue,
+  }) : _maxBytes = maxBytes,
+       _maxQueuedFrames = maxQueuedFrames;
 
   @override
   Stream<List<int>> bind(Stream<List<int>> source) {
@@ -56,6 +61,13 @@ class LengthPrefixedDecoder
           if (pending.length < 4 + length) break;
           final frame = pending.sublist(4, 4 + length);
           pending = pending.sublist(4 + length);
+          if (_queued >= _maxQueuedFrames) {
+            // The consumer is slower than the peer. Close instead of growing
+            // the queue without bound; the transport reconnects on its own.
+            await _buffer.close();
+            return;
+          }
+          _queued++;
           _buffer.add(frame);
         }
       }
@@ -63,6 +75,9 @@ class LengthPrefixedDecoder
     }
 
     deliver();
-    return _buffer.stream;
+    return _buffer.stream.map((frame) {
+      if (_queued > 0) _queued--;
+      return frame;
+    });
   }
 }

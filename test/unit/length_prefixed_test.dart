@@ -109,5 +109,25 @@ void main() {
         [1],
       ]);
     });
+    test('bounds the decoded frame queue when the consumer is slow', () async {
+      final source = StreamController<List<int>>();
+      final stream = source.stream.transform(
+        LengthPrefixedDecoder(maxQueuedFrames: 4),
+      );
+      final frames = <List<int>>[];
+      final done = Completer<void>();
+      final sub = stream.listen(frames.add, onDone: done.complete);
+      sub.pause();
+      for (var i = 0; i < 40; i++) {
+        source.add(framePayload(const [1]));
+      }
+      unawaited(source.close());
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      sub.resume();
+      await done.future;
+      await sub.cancel();
+      expect(frames.length, lessThanOrEqualTo(4));
+    });
+
   });
 }

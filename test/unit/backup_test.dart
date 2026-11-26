@@ -578,4 +578,23 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+  test('a non-stream backup file over the cap is rejected before reading',
+      () async {
+    final dir = Directory.systemTemp.createTempSync('soty_big_backup');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final path = '${dir.path}/huge.bin';
+    final file = await File(path).open(mode: FileMode.write);
+    await file.truncate(maxBackupBytes + 64 * 1024 * 1024 + 1);
+    await file.close();
+
+    await expectLater(
+      service.restoreBackupFromFile(
+        path: path,
+        password: 'secret',
+        replaceExisting: true,
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
 }

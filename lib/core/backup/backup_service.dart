@@ -197,7 +197,15 @@ class BackupService {
     required bool replaceExisting,
   }) async {
     if (!await BackupStream.isStreamFile(path)) {
-      final raw = await File(path).readAsString();
+      // A legacy document is read into a String, so cap the file size before
+      // that allocation. Without this, a 1 GiB non-stream file handed to
+      // "restore" is fully materialised before any format check.
+      final file = File(path);
+      final length = await file.length();
+      if (length > maxBackupBytes + 64 * 1024 * 1024) {
+        throw const FormatException('backup file is too large');
+      }
+      final raw = await file.readAsString();
       final payload = await readBackup(raw: raw, password: password);
       await restore(payload, replaceExisting: replaceExisting);
       return;

@@ -50,6 +50,7 @@ Future<HostTransport> makeTransport({
     Set<String> retiredHosts = const <String>{},
     Duration reconnectBase = const Duration(seconds: 2),
     int? maxHostFailures,
+    bool allowLoopbackHosts = true,
   }) async {
     final transport = HostTransport(
       settings: settings,
@@ -60,6 +61,7 @@ Future<HostTransport> makeTransport({
       retiredHosts: retiredHosts,
       reconnectBase: reconnectBase,
       maxHostFailures: maxHostFailures ?? hostPoolMaxFailures,
+      allowLoopbackHosts: allowLoopbackHosts,
     );
     transport.setEnvelopeSink(sink);
     await transport.start(
@@ -489,6 +491,26 @@ Future<HostTransport> makeTransport({
         'ws://127.0.0.1:${fake.port}/ws',
         'ws://127.0.0.1:${second.port}/ws',
       ]);
+    });
+
+    test('refuses a loopback endpoint learned from the tracker', () async {
+      final second = _FakeHost(identityHex: identityHex);
+      await second.start();
+      addTearDown(second.stop);
+      fake.hostListReply = [
+        HostEndpoint(addr: 'ws://127.0.0.1:${second.port}/ws'),
+      ];
+
+      final transport = await makeTransport(allowLoopbackHosts: false);
+      await transport.addHost(
+        HostEndpoint(addr: 'ws://127.0.0.1:${fake.port}/ws'),
+      );
+      await _until(() => fake.peerListRequests >= 1);
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(transport.hosts.map((h) => h.addr), [
+        'ws://127.0.0.1:${fake.port}/ws',
+      ]);
+      expect(second.subscriptions, 0);
     });
 
     test('manual mode never requests discovery or dials tracker hosts',

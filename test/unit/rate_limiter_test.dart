@@ -53,5 +53,19 @@ void main() {
       }
       expect(allowed, hostRateLimitPerWindow);
     });
+    test('a fresh-key flood does not reset live buckets', () {
+      final limiter = RateLimiter(
+        limitPerWindow: 1,
+        windowSeconds: 60,
+        maxKeys: 2,
+      );
+      expect(limiter.allow('k1', now: at), isTrue);
+      expect(limiter.allow('k2', now: at), isTrue);
+      // Adding k3 evicts the oldest bucket (k1), not every bucket from this
+      // window. k2 must stay rate-limited.
+      expect(limiter.allow('k3', now: at), isTrue);
+      expect(limiter.allow('k2', now: at), isFalse);
+    });
+
   });
 }

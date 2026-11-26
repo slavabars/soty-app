@@ -20,6 +20,7 @@ class StoredTransfer {
   final String senderX;
   final String conversationId;
   final bool started;
+  final bool completed;
   final int timestamp;
 
   const StoredTransfer({
@@ -35,6 +36,7 @@ class StoredTransfer {
     required this.senderX,
     required this.conversationId,
     required this.started,
+    this.completed = false,
     required this.timestamp,
   });
 }
@@ -66,6 +68,7 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
         senderX: transfer.senderX,
         conversationId: Value(transfer.conversationId),
         started: Value(transfer.started ? 1 : 0),
+        completed: Value(transfer.completed ? 1 : 0),
         timestamp: Value(transfer.timestamp),
       ),
       mode: InsertMode.insertOrIgnore,
@@ -174,6 +177,19 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
     }
   }
 
+  /// Marks a fully assembled transfer as completed. The manifest row is kept
+  /// (without slices) so `_acceptFileRequest` can still decide who is
+  /// entitled to the blob after the staging area is gone.
+  Future<void> markCompleted(String transferId) async {
+    await (delete(db.transferParts)
+          ..where((p) => p.transferId.equals(transferId)))
+        .go();
+    await (update(db.transfers)
+          ..where((t) => t.transferId.equals(transferId)))
+        .write(const TransfersCompanion(completed: Value(1)));
+    await store.deleteTransfer(transferId);
+  }
+
   /// Drops a completed (or abandoned) transfer and every slice it had.
   Future<void> remove(String transferId) async {
     await (delete(db.transferParts)
@@ -199,7 +215,7 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
   /// Transfers whose download was started, used to resume after a restart.
   Future<List<StoredTransfer>> startedTransfers() async {
     final rows = await (select(db.transfers)
-          ..where((t) => t.started.equals(1)))
+          ..where((t) => t.started.equals(1) & t.completed.equals(0)))
         .get();
     return [for (final row in rows) _toStored(row, started: true)];
   }
@@ -207,7 +223,8 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
   /// Active transfer count, for the retention cap.
   Future<int> count() async {
     final row = await (selectOnly(db.transfers)
-          ..addColumns([db.transfers.transferId.count()]))
+          ..addColumns([db.transfers.transferId.count()])
+          ..where(db.transfers.completed.equals(0)))
         .getSingle();
     return row.read(db.transfers.transferId.count()) ?? 0;
   }
@@ -215,6 +232,7 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
   /// Oldest active transfer timestamp, used to bound the staging area.
   Future<StoredTransfer?> oldest() async {
     final row = await (select(db.transfers)
+          ..where((t) => t.completed.equals(0))
           ..orderBy([(t) => OrderingTerm(expression: t.timestamp)])
           ..limit(1))
         .getSingleOrNull();
@@ -236,6 +254,7 @@ class TransferDao extends DatabaseAccessor<AppDatabase> {
         senderX: row.senderX,
         conversationId: row.conversationId,
         started: started,
+        completed: row.completed == 1,
         timestamp: row.timestamp,
       );
 }

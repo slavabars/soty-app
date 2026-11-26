@@ -279,6 +279,18 @@ void main() {
       expect(batches, isEmpty);
       expect(await roots.getPrunedRoots(), isEmpty);
     });
+    test('prunes more rows than a typical SQLite bound-variable limit',
+        () async {
+      // 1500 > 999, the lowest common SQLITE_MAX_VARIABLE_NUMBER on Android.
+      // The DAO must split the delete into chunks; one giant IN (…) would
+      // throw and roll the retention transaction back on a real device.
+      for (var i = 0; i < 1500; i++) {
+        await insertAt(id: 'old-$i', timestamp: daysAgo(40));
+      }
+      final batches = await prune(relayedDays: 30);
+      expect(await storedCount(), 0);
+      expect(batches.fold<int>(0, (sum, b) => sum + b.count), 1500);
+    });
   });
 
   group('per-conversation cap', () {
@@ -332,5 +344,6 @@ void main() {
     test('empty tree has no root', () async {
       expect(await merkleRoot(const []), isNull);
     });
+
   });
 }

@@ -80,6 +80,10 @@ class HostTransport implements Transport {
   final Duration reconnectBase;
   final Duration reconnectMax;
 
+  /// Test-only: allow loopback endpoints learned from a tracker. Production
+  /// clients reject them so a hostile PEER_LIST cannot probe local services.
+  final bool allowLoopbackHosts;
+
   /// Test seam: how a host websocket is opened. The default keeps the socket
   /// alive with [keepAliveInterval] protocol pings; tests inject a stub and
   /// assert the interval is passed through.
@@ -135,6 +139,7 @@ class HostTransport implements Transport {
     this.maxHostFailures = hostPoolMaxFailures,
     this.reconnectBase = _reconnectBase,
     this.reconnectMax = _reconnectMax,
+    this.allowLoopbackHosts = false,
     this.webSocketConnector,
   }) {
     _peerController = StreamController<DtmPeer>.broadcast(
@@ -489,10 +494,14 @@ class HostTransport implements Transport {
       );
       await for (final frame in ws) {
         if (conn.closing || _stopping) break;
+        // Reject the raw frame before decoding/allocating: a hostile relay
+        // must not make the client UTF-8-decode a multi-megabyte message.
         final String text;
         if (frame is String) {
+          if (frame.length > maxFrameBytes) break;
           text = frame;
         } else if (frame is List<int>) {
+          if (frame.length > maxFrameBytes) break;
           text = utf8.decode(frame);
         } else {
           break;
@@ -701,6 +710,13 @@ class HostTransport implements Transport {
     if (_relayMode != RelayMode.auto) return;
     for (final endpoint in hosts) {
       if (_hosts.containsKey(endpoint.addr)) continue;
+      if (!HostEndpoint.isSafeLearnedAddr(
+        endpoint.addr,
+        allowLoopback: allowLoopbackHosts,
+      )) {
+        debugPrint('[host] refused unsafe learned endpoint: ${endpoint.addr}');
+        continue;
+      }
       final ok = await addHost(endpoint);
       if (!ok) continue;
       _learnedAddrs.add(endpoint.addr);

@@ -985,7 +985,7 @@ class MessengerController {
         timestamp: envelope.timestamp,
       );
     }
-    await transferDao.remove(transfer.transferId);
+    await transferDao.markCompleted(transfer.transferId);
     _outstandingChunkRequests.remove(transfer.transferId);
     _notifyChange();
   }
@@ -1000,6 +1000,12 @@ class MessengerController {
   ) async {
     final requester = peerByEdPubKey(envelope.senderPubKey)?.pubKey;
     if (requester == null) return;
+    // A request must name the transfer we actually announced. Without this,
+    // any peer that knows a group blob id could ask with an empty
+    // conversationId and bypass the membership check below.
+    final transfer = await transferDao.get(payload.transferId);
+    if (transfer == null || transfer.blobId != payload.blobId) return;
+    if (transfer.conversationId != payload.conversationId) return;
     if (payload.conversationId.isNotEmpty) {
       final conversation = _conversations[payload.conversationId];
       if (conversation == null ||
@@ -1007,13 +1013,16 @@ class MessengerController {
           !conversation.memberKeys.contains(requester)) {
         return;
       }
+    } else if (transfer.senderX != myXPubKey &&
+        transfer.senderX != requester) {
+      // Direct transfers have no conversation id. Only the sender of the
+      // file (us) or the peer that sent it to us may ask for slices.
+      return;
     }
     final serving = _servingPeers[requester] ?? 0;
     if (serving >= maxConcurrentServesPerPeer) return;
     _servingPeers[requester] = serving + 1;
     try {
-      final transfer = await transferDao.get(payload.transferId);
-      if (transfer != null && transfer.blobId != payload.blobId) return;
       Uint8List? slice;
       final stored = await mediaDao.get(payload.blobId);
       if (stored != null) {
@@ -1032,7 +1041,7 @@ class MessengerController {
             slice = Uint8List.sublistView(whole, start, end);
           }
         }
-      } else if (transfer != null) {
+      } else {
         slice = await transferDao.part(transfer.transferId, payload.index);
       }
       if (slice == null) return;
@@ -1218,8 +1227,10 @@ class MessengerController {
     }
     final known = peerByEdPubKey(envelope.senderPubKey);
     final chatId = known?.pubKey ?? envelope.senderPubKey;
-    final senderX =
-        known?.pubKey ?? (payload is DirectPayload ? payload.senderX : null);
+    // Never address a receipt to the self-asserted `senderX` of an unknown
+    // peer: that would let anyone make this device emit envelopes to an
+    // arbitrary third-party X key.
+    final senderX = known?.pubKey;
     await _noteChat(chatId, envelope.timestamp);
     if (senderX != null) {
       await _sendReceipt(
@@ -2126,6 +2137,27 @@ class MessengerController {
           );
     final pushSlices = byteCount <= senderPushBytes;
     final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    // Keep the manifest locally too: a large file is served from this row
+    // when a recipient asks for slices. It also makes the request/entitlement
+    // check in `_acceptFileRequest` uniform for sender and receiver.
+    await transferDao.putManifest(
+      StoredTransfer(
+        transferId: manifest.transferId,
+        blobId: blobId,
+        kind: kind,
+        mime: mime,
+        byteCount: byteCount,
+        chunkSize: manifest.chunkSize,
+        chunkCount: chunkCount,
+        sha256: sha256,
+        durationMs: durationMs,
+        senderX: myXPubKey,
+        conversationId: isGroupConversation ? conversationId : '',
+        started: false,
+        completed: true,
+        timestamp: now,
+      ),
+    );
     // The sender always keeps its own copy before queuing anything: it is the
     // seed for recipients, and a cancelled send stays readable here.
     if (inline != null) {
