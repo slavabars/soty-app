@@ -217,6 +217,17 @@ const int hostTrackerPeerTtlMs = 24 * 60 * 60 * 1000;
 /// Hard cap on tracker-known peers; the oldest are evicted beyond it.
 const int maxKnownPeers = 8192;
 
+/// Hard ceiling on envelopes a RAM-first relay keeps. The OpenWrt
+/// `dtm_relay` (`relay-owrt/`) defaults to RAM because router flash wears
+/// out, and a 30-day retention is meaningless in 128 MiB of RAM. Beyond
+/// this count or [hostMaxStoredBytes] the oldest rows are evicted first;
+/// signed prune roots cover only age/subscription pruning, so cap eviction
+/// is a cache drop, not a retention promise. A server-side `dtm_host` does
+/// not apply this cap; the router implementation mirrors it in
+/// `relay-owrt/internal/limits`.
+const int hostMaxStoredEnvelopes = 20000;
+const int hostMaxStoredBytes = 32 * 1024 * 1024;
+
 /// Maximum members in one group chat (roster incl. self).
 const int maxGroupMembers = 512;
 
